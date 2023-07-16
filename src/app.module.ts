@@ -8,6 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { typeOrmEntities } from './config/typeorm.entities.config';
 import { SubjectModule } from './modules/subject.module';
+import { DailyMessageModule } from './modules/daily-message.module';
 
 @Module({
   imports: [SwaggerModule,
@@ -27,7 +28,8 @@ import { SubjectModule } from './modules/subject.module';
         autoLoadEntities: true,        
       }),
     }),
-    SubjectModule
+    SubjectModule,
+    DailyMessageModule,
   ],
   controllers: [AppController],
   providers: [
