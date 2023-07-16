@@ -6,6 +6,7 @@ import { ClassSerializerInterceptor } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { typeOrmEntities } from './config/typeorm.entities.config';
 
 @Module({
   imports: [SwaggerModule,
@@ -20,7 +21,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         username: configService.get('DATABASE_USER'),
         password: configService.get('DATABASE_PASS'),
         database: configService.get('DATABASE_SCHEMA'),
-        entities: [],
+        entities: [...typeOrmEntities],
         synchronize: true,
         autoLoadEntities: true,        
       }),
