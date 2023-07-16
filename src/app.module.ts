@@ -5,19 +5,25 @@ import { SwaggerModule } from '@nestjs/swagger';
 import { ClassSerializerInterceptor } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
-  imports: [SwaggerModule, 
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'password',
-      database: 'manager',
-      entities: [],
-      synchronize: true,
-      autoLoadEntities: true,
+  imports: [SwaggerModule,
+    ConfigModule.forRoot({isGlobal: true}), 
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('DATABASE_HOST'),
+        port: configService.get<number>('DATABASE_PORT'),
+        username: configService.get('DATABASE_USER'),
+        password: configService.get('DATABASE_PASS'),
+        database: configService.get('DATABASE_SCHEMA'),
+        entities: [],
+        synchronize: true,
+        autoLoadEntities: true,        
+      }),
     }),
   ],
   controllers: [AppController],
