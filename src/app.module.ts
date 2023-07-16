@@ -7,6 +7,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { typeOrmEntities } from './config/typeorm.entities.config';
+import { SubjectModule } from './modules/subject.module';
 
 @Module({
   imports: [SwaggerModule,
@@ -26,6 +27,7 @@ import { typeOrmEntities } from './config/typeorm.entities.config';
         autoLoadEntities: true,        
       }),
     }),
+    SubjectModule
   ],
   controllers: [AppController],
   providers: [
