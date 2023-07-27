@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { SwaggerModule } from '@nestjs/swagger';
@@ -9,9 +10,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { typeOrmEntities } from './config/typeorm.entities.config';
 import { SubjectModule } from './modules/subject.module';
 import { DailyMessageModule } from './modules/daily-message.module';
+import { TasksModule } from './tasks/tasks.module';
 
 @Module({
   imports: [SwaggerModule,
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({isGlobal: true}), 
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -30,6 +33,7 @@ import { DailyMessageModule } from './modules/daily-message.module';
     }),
     SubjectModule,
     DailyMessageModule,
+    TasksModule
   ],
   controllers: [AppController],
   providers: [
