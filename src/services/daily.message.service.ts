@@ -1,13 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DailyMessage, CreateDailyMessageDto, UpdateDailyMessageDto } from 'src/entities/daily.message.entity';
 import { GenericRepository } from 'src/generic-repository/generic-repository';
+import { EmailService } from './email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class DailyMessageService {
   constructor(
     @InjectRepository(DailyMessage)
     private readonly dailyMessageRepository: GenericRepository<DailyMessage>,
+    private configService: ConfigService
   ) {}
 
   async findAll(): Promise<DailyMessage[]> {
@@ -66,4 +69,32 @@ export class DailyMessageService {
       throw new NotFoundException();
     }        
   }
+
+  async findOneRandom(): Promise<DailyMessage> {
+    const dailyMessage = await this.dailyMessageRepository.createQueryBuilder('daily-messages')
+      .select()
+      .orderBy('RANDOM()')
+      .getOne();
+
+    return dailyMessage;
+  }
+
+  async sendOneMessageToEmail(email: string) {
+    try {
+      const dailyMessage = await this.findOneRandom();
+
+      if (!dailyMessage) {
+        throw new NotFoundException();
+      }
+
+      const emailservice = new EmailService(this.configService)
+      emailservice.sendEmail(email, "Daily Message", dailyMessage.message);
+    } catch (error) {            
+      if (error instanceof NotFoundException) {        
+        throw new NotFoundException("No daily message found to send.");
+      }
+      throw new InternalServerErrorException();
+    }
+  }
+
 }
