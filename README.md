@@ -58,6 +58,18 @@ $ npm run test:e2e
 $ npm run test:cov
 ```
 
+## Running the app in production using Docker
+
+```bash
+# copy file env.example to prod.env and change the variables in prod.env
+$ cp env.example prod.env
+
+# execute the docker-compose
+$ docker-compose -f prod.docker-compose.yml  --env-file prod.env up -d
+
+Access the app in host http://localhost:3000
+```
+
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
