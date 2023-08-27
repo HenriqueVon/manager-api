@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: manager-api:0.0.1
+    image: "manager-api:${APP_VERSION}"
     ports:      
       - "${APP_PORT_DOCKER}:3000"
     depends_on:
