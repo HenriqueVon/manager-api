@@ -32,13 +32,13 @@ export class EmailService {
     });
   }
 
-  async sendEmail(to: string, subject: string, text: string) {    
+  async sendEmail(to: string, subject: string, message: string) {    
     try {      
       await this.transporter.sendMail({
         from: this.configService.get('EMAIL_FROM_NAME') + ' <' + this.configService.get('EMAIL_FROM') + '>',
         to,
         subject,
-        text,        
+        html: message,        
       });
       console.log('Email sent successfully.');
     } catch (error) {
