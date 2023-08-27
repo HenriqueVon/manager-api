@@ -87,8 +87,10 @@ export class DailyMessageService {
         throw new NotFoundException();
       }
 
+      const message = this.isHtmlString(dailyMessage.message) ? this.createHtmlMessage(dailyMessage.message) : dailyMessage.message;
+
       const emailservice = new EmailService(this.configService)
-      emailservice.sendEmail(email, "Daily Message", dailyMessage.message);
+      emailservice.sendEmail(email, "Daily Message", message);
     } catch (error) {            
       if (error instanceof NotFoundException) {        
         throw new NotFoundException("No daily message found to send.");
@@ -97,4 +99,23 @@ export class DailyMessageService {
     }
   }
 
+  isHtmlString(str) {
+    const htmlRegex = /<[a-z][\s\S]*>/i; // Basic HTML tag matching regex
+    return htmlRegex.test(str);
+  }
+
+  createHtmlMessage(message: string): string {
+    const htmlContent = `
+    <html>
+      <head>
+        <title></title>
+      </head>
+      <body>
+        ${message}
+      </body>
+    </html>
+    `;
+
+    return htmlContent;
+  }
 }
