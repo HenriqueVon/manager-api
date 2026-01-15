@@ -1,0 +1,40 @@
+service: manager-api
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs22.x
+  region: eu-west-1
+  stage: ${opt:stage, "dev"}
+  memorySize: 256
+  timeout: 15
+  logRetentionInDays: 14
+
+functions:
+  api:
+    handler: src/handler.handler
+    events:
+      - httpApi:
+          path: /
+          method: ANY
+      - httpApi:
+          path: /{proxy+}
+          method: ANY      
+
+plugins:
+  - serverless-esbuild
+  - serverless-offline  
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+    
+  esbuild:
+    bundle: true
+    external:
+      - aws-sdk    
+    minify: false
+    sourcemap: true
+    target: node24
+    platform: node
