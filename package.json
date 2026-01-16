@@ -1,8 +1,8 @@
 {
   "scripts": {
     "check:ts": "tsc --noEmit",
-    "offline": "serverless offline --noTimeout --reloadHandler",
-    "dev": "npm run check:ts && npm run offline",
+    "offline": "serverless offline --noTimeout --reloadHandler",    
+    "dev": "concurrently -k \"tsc --noEmit --watch\" \"tsx watch src/local.ts\"",
     "deploy:dev": "serverless deploy --stage dev",
     "deploy:prod": "serverless deploy --stage prod",
     "logs:dev": "serverless logs -f api --stage dev -t",
@@ -20,7 +20,8 @@
     "esbuild": "^0.27.2",
     "serverless": "^3.40.0",
     "serverless-esbuild": "^1.57.0",
-    "serverless-offline": "^14.4.0",
+    "serverless-offline": "^13.9.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }
