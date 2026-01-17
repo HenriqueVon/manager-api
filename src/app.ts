@@ -1,9 +1,9 @@
-import express from "express";
+import express from 'express';
 
 export const app = express();
 
 app.use(express.json());
 
-app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "manager-api" });
+app.get('/health', (_req, res) => {
+  res.json({ ok: true, service: 'manager-api' });
 });
