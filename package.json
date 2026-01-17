@@ -13,6 +13,7 @@
     "lint:fix": "eslint \"src/**/*.ts\" --fix"
   },
   "dependencies": {
+    "dotenv": "^17.2.3",
     "express": "^4.22.1",
     "serverless-http": "^4.0.0",
     "typescript-eslint": "^8.53.0"
@@ -22,6 +23,7 @@
     "@types/node": "^25.0.8",
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
+    "concurrently": "^9.2.1",
     "esbuild": "^0.27.2",
     "eslint": "^9.39.2",
     "serverless": "^3.40.0",
