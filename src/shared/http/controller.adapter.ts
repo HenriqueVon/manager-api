@@ -9,10 +9,11 @@ export function controllerAdapter<T>(
       
       const requestContainer = req.container;
       if (!requestContainer) {
-        
         throw new Error('Request container not found. Is requestContainerMiddleware before this route?');
       }
       
+      // Controllers are resolved per request to ensure
+      // all scoped dependencies are properly injected
       const controller = requestContainer.resolve<T>(ControllerClass);
       const handler = controller[methodName];
 
