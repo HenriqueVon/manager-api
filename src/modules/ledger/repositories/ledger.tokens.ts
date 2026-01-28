@@ -1,0 +1,1 @@
+export const LEDGER_REPOSITORY = 'LedgerRepository' as const;
