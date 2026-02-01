@@ -1,6 +1,3 @@
-import { LedgerType } from '@prisma/client';
-
-export interface CreateLedgerDto {
-  name: string;
-  type: LedgerType
-}
+import { z } from 'zod';
+import { createLedgerSchema } from '../schemas/create-ledger.schema';
+export type CreateLedgerDto = z.infer<typeof createLedgerSchema>;

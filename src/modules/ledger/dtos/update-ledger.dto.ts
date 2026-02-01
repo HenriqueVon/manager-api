@@ -1,6 +1,3 @@
-import { LedgerType } from '@prisma/client';
-
-export interface UpdateLedgerDto {
-  name? : string
-  type? : LedgerType
-}
+import { z } from 'zod';
+import { updateLedgerSchema } from '../schemas/update-ledger.schema';
+export type UpdateLedgerDto = z.infer<typeof updateLedgerSchema>;
