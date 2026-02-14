@@ -17,8 +17,7 @@
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src/**/*.ts",
-    "vitest.config.ts",
+    "src/**/*.ts"    
   ],
   "exclude": ["node_modules"]
 }
