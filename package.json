@@ -14,7 +14,10 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate:dev": "prisma migrate dev",
     "prisma:migrate:prod": "prisma migrate deploy",
-    "prisma:studio": "prisma studio"
+    "prisma:studio": "prisma studio",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest --watch"    
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.3.0",
@@ -41,6 +44,7 @@
     "serverless-esbuild": "^1.57.0",
     "serverless-offline": "^13.9.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
   }
 }

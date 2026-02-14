@@ -3,11 +3,12 @@ import { prisma } from './../../../services/database/prisma/prisma.client';
 import { Ledger } from '@prisma/client';
 import { ILedgerRepository } from './iledger.repository';
 import { CreateLedgerDto, UpdateLedgerDto } from '../dtos';
+import { prismaCall } from './../../../shared/database/prisma/prisma-call';
 
 @injectable()
 export class LedgerRepository implements ILedgerRepository {  
   async create(data: CreateLedgerDto): Promise<Ledger> {
-    return prisma.ledger.create({data});
+    return prismaCall(() => prisma.ledger.create({ data }));
   }
 
   async findById(id: string) : Promise<Ledger | null> {
@@ -15,6 +16,12 @@ export class LedgerRepository implements ILedgerRepository {
       where: { id },
     });
   } 
+
+  async findByName(name: string) : Promise<Ledger | null> {
+    return prisma.ledger.findUnique ({ 
+      where: { name }
+    });
+  }
 
   async findMany(filters: Partial<Ledger> = {}): Promise<Ledger[]> {
     const { name, type } = filters;
@@ -26,16 +33,16 @@ export class LedgerRepository implements ILedgerRepository {
   }
 
   async update(id: string, data: UpdateLedgerDto): Promise<Ledger> {
-    return prisma.ledger.update({
-      where: { id },
-      data
-    });
+    return prismaCall(() =>
+      prisma.ledger.update({
+        where: { id },
+        data,
+      })
+    );
   }
 
   async delete(id: string): Promise<void> {
-    await prisma.ledger.delete({
-      where: { id },
-    });
+    await prismaCall(() => prisma.ledger.delete({ where: { id } }));
   }
 
   async exists(id: string): Promise<boolean> {

@@ -3,6 +3,7 @@ import { Ledger } from '@prisma/client';
 import { ILedgerRepository } from './../repositories/iledger.repository';
 import { LEDGER_REPOSITORY } from '../repositories/ledger.tokens';
 import { CreateLedgerDto } from '../dtos';
+import { ConflictError } from './../../../shared/errors/app-error';
 
 @injectable()
 export class CreateLedgerUseCase {
@@ -12,6 +13,16 @@ export class CreateLedgerUseCase {
   ){}
   
   async execute(input: CreateLedgerDto) : Promise<Ledger> {
-    return await this.ledgerRepository.create(input);
+    const name = input.name.trim().toUpperCase();
+    
+    const existing = await this.ledgerRepository.findByName(name);
+    if (existing) {
+      throw new ConflictError('Ledger name already exists!')
+    }
+    
+    return this.ledgerRepository.create({ 
+      ...input,
+      name
+    });
   }
 }
