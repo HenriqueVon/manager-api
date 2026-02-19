@@ -1,9 +1,9 @@
 import { injectable } from 'tsyringe';
-import { prisma } from './../../../services/database/prisma/prisma.client';
+import { prisma } from '@services/database/prisma/prisma.client';
 import { Ledger } from '@prisma/client';
 import { ILedgerRepository } from './iledger.repository';
 import { CreateLedgerDto, UpdateLedgerDto } from '../dtos';
-import { prismaCall } from './../../../shared/database/prisma/prisma-call';
+import { prismaCall } from '@shared/database/prisma/prisma-call';
 
 @injectable()
 export class LedgerRepository implements ILedgerRepository {  

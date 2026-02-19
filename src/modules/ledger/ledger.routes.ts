@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { controllerAdapter } from '../../shared/http/controller.adapter';
-import { validateRequest } from '../../shared/http/middlewares/validate.middleware';
+import { controllerAdapter } from '@shared/http/controller.adapter';
+import { validateRequest } from '@shared/http/middlewares/validate.middleware';
 import { LedgerController } from './ledger.controller';
-import { idParamsSchema } from './../../shared/schemas/id.schema';
+import { idParamsSchema } from '@shared/schemas/id.schema';
 import { createLedgerSchema, updateLedgerSchema } from './schemas/';
 
 const router = Router();

@@ -1,10 +1,10 @@
 import 'reflect-metadata';
 import './config/env';
 import express from 'express';
-import { requestContainerMiddleware } from './shared/http/middlewares/request-container.middleware';
-import { errorHandler } from './shared/http/middlewares/error-handlers.middleware';
+import { requestContainerMiddleware } from '@shared/http/middlewares/request-container.middleware';
+import { errorHandler } from '@shared/http/middlewares/error-handlers.middleware';
 import routes from './routes';
-import './shared/container';
+import '@shared/container';
 
 export const app = express();
 

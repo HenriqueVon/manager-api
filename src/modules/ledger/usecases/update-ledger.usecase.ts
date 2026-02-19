@@ -3,7 +3,7 @@ import { UpdateLedgerDto } from '../dtos';
 import { ILedgerRepository } from '../repositories/iledger.repository';
 import { LEDGER_REPOSITORY } from '../repositories/ledger.tokens';
 import { Ledger } from '@prisma/client';
-import { ConflictError } from '../../../shared/errors/app-error';
+import { ConflictError } from '@shared/errors/app-error';
 
 @injectable()
 export class UpdateLedgerUseCase {

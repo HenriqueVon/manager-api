@@ -1,4 +1,3 @@
-// src/shared/schemas/id.schema.ts
 import { z } from 'zod';
 
 export const idSchema = z.cuid({ error: 'Invalid id' });
