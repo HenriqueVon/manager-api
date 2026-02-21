@@ -2,7 +2,7 @@ import { inject, injectable } from 'tsyringe';
 import { ILedgerRepository } from '../repositories/iledger.repository';
 import { LEDGER_REPOSITORY } from '../repositories/ledger.tokens';
 import { Ledger } from '@prisma/client';
-import { NotFoundError } from '../../../shared/errors/app-error';
+import { NotFoundError } from '@shared/errors/app-error';
 
 @injectable()
 export class GetByIdLedgerUseCase {

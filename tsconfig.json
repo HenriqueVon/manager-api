@@ -8,17 +8,21 @@
     "lib": ["ES2023"],
     "outDir": "dist",
     "rootDir": "src",
-
     "strict": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@modules/*": ["src/modules/*"],
+      "@services/*": ["src/services/*"],
+      "@shared/*": ["src/shared/*"],
+      "@config/*": ["src/config/*"]
+    }    
   },
   "include": [
-    "src/**/*.ts",
-    "vitest.config.ts",
+    "src/**/*.ts"    
   ],
   "exclude": ["node_modules"]
 }
