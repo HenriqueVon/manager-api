@@ -10,6 +10,7 @@ export default defineConfig({
     environment : 'node',
     globals     : true,
     clearMocks  : true,
+    setupFiles: ['src/test/setup.ts'],
   },
   resolve: {
     alias: {
