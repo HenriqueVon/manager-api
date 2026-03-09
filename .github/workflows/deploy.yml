@@ -12,6 +12,34 @@ permissions:
   contents: read
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npm run check:ts
+
+      - name: Run tests
+        run: npm run test
+
   deploy-dev:
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
