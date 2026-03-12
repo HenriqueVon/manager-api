@@ -1,15 +1,20 @@
 service: manager-api
 
 frameworkVersion: "3"
+useDotenv: true
 
 provider:
   name: aws
-  runtime: nodejs22.x
-  region: eu-west-1
+  runtime: nodejs24.x
+  region: sa-east-1
   stage: ${opt:stage, "dev"}
   memorySize: 256
   timeout: 15
   logRetentionInDays: 14
+  environment:
+    NODE_ENV: ${env:NODE_ENV}
+    DATABASE_URL: ${env:DATABASE_URL}
+    API_KEY: ${env:API_KEY}    
 
 functions:
   api:
@@ -25,6 +30,7 @@ functions:
 plugins:
   - serverless-esbuild
   - serverless-offline  
+  - serverless-prune-plugin
 
 custom:
   serverless-offline:
@@ -32,9 +38,36 @@ custom:
     
   esbuild:
     bundle: true
+    exclude:
+      - '@aws-sdk/*'    
     external:
       - aws-sdk    
     minify: false
     sourcemap: true
     target: node24
     platform: node
+
+  prune:
+    automatic: true
+    number: 3    
+
+package:
+  patterns:
+    - '!**/*.test.*'
+    - '!**/*.spec.*'
+    - '!test/**'
+    - '!tests/**'
+    - '!coverage/**'
+    - '!docs/**'
+    - '!.git/**'
+    - '!.github/**'
+    - '!README.md'
+    - '!node_modules/.cache/**'
+    - '!*.log'
+    - '!vitest.config.*'
+    - '!eslint.config.*'
+    - '!tsconfig*.json'
+    - '!serverless.yml'
+    - '!.env*'
+  individually: true
+  excludeDevDependencies: true    

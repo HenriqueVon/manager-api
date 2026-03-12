@@ -44,6 +44,7 @@
     "serverless": "^3.40.0",
     "serverless-esbuild": "^1.57.0",
     "serverless-offline": "^13.9.0",
+    "serverless-prune-plugin": "^2.1.0",
     "supertest": "^7.2.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
