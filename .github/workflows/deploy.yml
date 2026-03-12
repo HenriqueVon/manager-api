@@ -77,7 +77,7 @@ jobs:
   deploy-prod:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: prod
+    environment: prd
 
     steps:
       - name: Checkout
