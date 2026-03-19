@@ -11,10 +11,20 @@ provider:
   memorySize: 256
   timeout: 15
   logRetentionInDays: 14
+
+  deploymentBucket:
+    name: manager-api-deployments-${self:provider.stage}
+    blockPublicAccess: true
+    serverSideEncryption: AES256
+
+  iam:
+    role:
+      name: manager-api-${self:provider.stage}-${self:provider.region}-lambdaRole
+
   environment:
     NODE_ENV: ${env:NODE_ENV}
     DATABASE_URL: ${env:DATABASE_URL}
-    API_KEY: ${env:API_KEY}    
+    API_KEY: ${env:API_KEY}
 
 functions:
   api:
@@ -25,23 +35,23 @@ functions:
           method: ANY
       - httpApi:
           path: /{proxy+}
-          method: ANY      
+          method: ANY
 
 plugins:
   - serverless-esbuild
-  - serverless-offline  
+  - serverless-offline
   - serverless-prune-plugin
 
 custom:
   serverless-offline:
     httpPort: 3000
-    
+
   esbuild:
     bundle: true
     exclude:
-      - '@aws-sdk/*'    
+      - "@aws-sdk/*"
     external:
-      - aws-sdk    
+      - aws-sdk
     minify: false
     sourcemap: true
     target: node24
@@ -49,25 +59,25 @@ custom:
 
   prune:
     automatic: true
-    number: 3    
+    number: 3
 
 package:
   patterns:
-    - '!**/*.test.*'
-    - '!**/*.spec.*'
-    - '!test/**'
-    - '!tests/**'
-    - '!coverage/**'
-    - '!docs/**'
-    - '!.git/**'
-    - '!.github/**'
-    - '!README.md'
-    - '!node_modules/.cache/**'
-    - '!*.log'
-    - '!vitest.config.*'
-    - '!eslint.config.*'
-    - '!tsconfig*.json'
-    - '!serverless.yml'
-    - '!.env*'
+    - "!**/*.test.*"
+    - "!**/*.spec.*"
+    - "!test/**"
+    - "!tests/**"
+    - "!coverage/**"
+    - "!docs/**"
+    - "!.git/**"
+    - "!.github/**"
+    - "!README.md"
+    - "!node_modules/.cache/**"
+    - "!*.log"
+    - "!vitest.config.*"
+    - "!eslint.config.*"
+    - "!tsconfig*.json"
+    - "!serverless.yml"
+    - "!.env*"
   individually: true
-  excludeDevDependencies: true    
+  excludeDevDependencies: true
