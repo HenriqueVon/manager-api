@@ -6,4 +6,7 @@ const router = Router();
 import ledgerRoute from '@modules/ledger/ledger.routes';
 router.use(`${basePath}/ledgers`, ledgerRoute);
 
+import financialCurrencyRoute from '@modules/financial/financial-currency/financial-currency.routes';
+router.use(`${basePath}/financial/currencies`, financialCurrencyRoute);
+
 export default router;
