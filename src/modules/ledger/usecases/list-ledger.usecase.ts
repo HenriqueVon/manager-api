@@ -1,16 +1,19 @@
 import { inject, injectable } from 'tsyringe';
 import { Ledger } from '@prisma/client';
-import { LedgerRepository } from '../repositories/ledger.repository';
+import { ILedgerRepository } from '../repositories/iledger.repository';
+import { LEDGER_REPOSITORY } from '../repositories/ledger.tokens';
+import { ListParamsDto } from '@shared/dtos/list-params.dto';
+import { PaginatedResponseDto } from '@shared/dtos/paginated-response.dto'; 
 
 @injectable()
 export class ListLedgerUseCase {
   constructor(
-    @inject(LedgerRepository)
-    private readonly ledgerRepository : LedgerRepository
-  ){}
+    @inject(LEDGER_REPOSITORY)
+    private readonly ledgerRepository: ILedgerRepository
+  ) {}
 
-  async execute() : Promise<Ledger[]> {
-    const ledgers = await this.ledgerRepository.findMany();
-    return ledgers;
+  async execute(params: ListParamsDto): Promise<PaginatedResponseDto<Ledger>> {
+    return this.ledgerRepository.findMany({}, params);
   }
+
 }
