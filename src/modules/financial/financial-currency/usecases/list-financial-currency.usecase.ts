@@ -2,6 +2,8 @@ import { inject, injectable } from 'tsyringe';
 import { FinancialCurrency } from '@prisma/client';
 import { IFinancialCurrencyRepository } from '../repositories/ifinancial-currency.repository';
 import { FINANCIAL_CURRENCY_REPOSITORY } from '../repositories/financial-currency.tokens';
+import { ListParamsDto } from '@shared/dtos/list-params.dto';
+import { PaginatedResponseDto } from '@shared/dtos/paginated-response.dto'; 
 
 @injectable()
 export class ListFinancialCurrencyUseCase {
@@ -10,7 +12,8 @@ export class ListFinancialCurrencyUseCase {
     private readonly financialCurrencyRepository: IFinancialCurrencyRepository
   ) {}
 
-  async execute(): Promise<FinancialCurrency[]> {
-    return this.financialCurrencyRepository.findMany();
+  async execute(params: ListParamsDto): Promise<PaginatedResponseDto<FinancialCurrency>> {
+    return this.financialCurrencyRepository.findMany({}, params);
   }
+
 }

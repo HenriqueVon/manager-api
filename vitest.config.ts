@@ -10,7 +10,10 @@ export default defineConfig({
     environment : 'node',
     globals     : true,
     clearMocks  : true,
-    setupFiles: ['src/test/setup.ts'],
+    setupFiles: [
+      './src/config/zod-openapi.ts',
+      './src/test/setup.ts',
+    ],
   },
   resolve: {
     alias: {
