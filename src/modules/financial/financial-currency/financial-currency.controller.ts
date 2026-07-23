@@ -29,7 +29,13 @@ export class FinancialCurrencyController {
   }
 
   async list(req: Request, res: Response) {
-    const financialCurrencys = await this.listFinancialCurrencyUseCase.execute();
+    const financialCurrencys = await this.listFinancialCurrencyUseCase.execute({
+      limit          : req.query.limit ? Number(req.query.limit) : undefined,
+      offset         : req.query.offset ? Number(req.query.offset) : undefined,
+      orderBy        : req.query.orderBy as string | undefined,
+      orderDirection : req.query.orderDirection as 'asc' | 'desc' | undefined,
+    });
+    
     return res.status(200).json(financialCurrencys);
   }
 

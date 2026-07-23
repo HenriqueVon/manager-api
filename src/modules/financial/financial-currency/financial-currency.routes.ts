@@ -3,11 +3,19 @@ import { controllerAdapter } from '@shared/http/controller.adapter';
 import { validateRequest } from '@shared/http/middlewares/validate.middleware';
 import { FinancialCurrencyController } from './financial-currency.controller';
 import { idParamsSchema } from '@shared/schemas/id.schema';
-import { createFinancialCurrencySchema, updateFinancialCurrencySchema } from './schemas';
+import {
+  createFinancialCurrencySchema,
+  updateFinancialCurrencySchema,
+  listFinancialCurrencyQuerySchema
+} from './schemas';
 
 const router = Router();
 
-router.get('/', controllerAdapter(FinancialCurrencyController, 'list'));
+router.get(
+  '/',
+  validateRequest({ query: listFinancialCurrencyQuerySchema }),
+  controllerAdapter(FinancialCurrencyController, 'list')
+);
 
 router.post(
   '/',
