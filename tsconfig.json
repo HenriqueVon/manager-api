@@ -18,7 +18,8 @@
       "@modules/*": ["src/modules/*"],
       "@services/*": ["src/services/*"],
       "@shared/*": ["src/shared/*"],
-      "@config/*": ["src/config/*"]
+      "@config/*": ["src/config/*"],
+      "@docs/*": ["src/docs/*"]
     }    
   },
   "include": [

@@ -3,11 +3,20 @@ import { controllerAdapter } from '@shared/http/controller.adapter';
 import { validateRequest } from '@shared/http/middlewares/validate.middleware';
 import { LedgerController } from './ledger.controller';
 import { idParamsSchema } from '@shared/schemas/id.schema';
-import { createLedgerSchema, updateLedgerSchema } from './schemas/';
+import {
+  createLedgerSchema,
+  updateLedgerSchema,
+  listLedgerQuerySchema
+} from './schemas';
 
 const router = Router();
 
-router.get('/', controllerAdapter(LedgerController, 'list'));
+router.get(
+  '/',
+  validateRequest({ query: listLedgerQuerySchema }),
+  controllerAdapter(LedgerController, 'list')
+);
+
 router.post(
   '/', 
   validateRequest({ body: createLedgerSchema }),

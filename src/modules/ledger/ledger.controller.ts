@@ -29,8 +29,14 @@ export class LedgerController{
     return res.status(201).json(ledger);
   }
 
-  async list(req: Request, res: Response) {        
-    const ledgers = await this.listLedgerUseCase.execute();
+  async list(req: Request, res: Response) {
+    const ledgers = await this.listLedgerUseCase.execute({
+      limit          : req.query.limit ? Number(req.query.limit) : undefined,
+      offset         : req.query.offset ? Number(req.query.offset) : undefined,
+      orderBy        : req.query.orderBy as string | undefined,
+      orderDirection : req.query.orderDirection as 'asc' | 'desc' | undefined,
+    });
+    
     return res.status(200).json(ledgers);
   }
 

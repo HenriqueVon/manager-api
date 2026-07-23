@@ -4,6 +4,8 @@ import { Ledger } from '@prisma/client';
 import { ILedgerRepository } from './iledger.repository';
 import { CreateLedgerDto, UpdateLedgerDto } from '../dtos';
 import { prismaCall } from '@shared/database/prisma/prisma-call';
+import { ListParamsDto } from '@shared/dtos/list-params.dto';
+import { PaginatedResponseDto } from '@shared/dtos/paginated-response.dto';
 
 @injectable()
 export class LedgerRepository implements ILedgerRepository {  
@@ -23,13 +25,37 @@ export class LedgerRepository implements ILedgerRepository {
     });
   }
 
-  async findMany(filters: Partial<Ledger> = {}): Promise<Ledger[]> {
+  async findMany(
+    filters: Partial<Ledger> = {},
+    params: ListParamsDto = {}
+  ): Promise<PaginatedResponseDto<Ledger>> {
+    const limit = Math.min(params.limit ?? 20, 100);
+    const offset = params.offset ?? 0;    
+
     const { name, type } = filters;
-    return prisma.ledger.findMany(
-      { where: 
-        {name, type}
+
+    const orderBy = params.orderBy
+      ? {
+        [params.orderBy]: params.orderDirection ?? 'asc',
       }
-    );
+      : undefined;
+
+    const [items, total] = await Promise.all([
+      prisma.ledger.findMany({
+        where : { name, type },
+        skip  : offset,
+        take  : limit,
+        orderBy,
+      }),
+      prisma.ledger.count({
+        where: { name, type },
+      }),
+    ]);
+
+    return {
+      items,
+      total,
+    };    
   }
 
   async update(id: string, data: UpdateLedgerDto): Promise<Ledger> {
