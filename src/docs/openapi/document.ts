@@ -1,4 +1,5 @@
 import './modules';
+import { openApiTags } from './tags';
 import { env } from '@config/env';
 
 import {
@@ -21,6 +22,8 @@ export function createOpenApiDocument() {
       description : 'Manager API documentation',
     },
 
+    tags: openApiTags,
+    
     servers: [
       {
         url         : `http://localhost:${env.app.port}/v1/api`,
