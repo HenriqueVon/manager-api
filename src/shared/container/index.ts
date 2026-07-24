@@ -10,3 +10,8 @@ import { FinancialCurrencyRepository } from '@modules/financial/financial-curren
 import { IFinancialCurrencyRepository } from '@modules/financial/financial-currency/repositories/ifinancial-currency.repository';
 import { FINANCIAL_CURRENCY_REPOSITORY } from '@modules/financial/financial-currency/repositories/financial-currency.tokens';
 container.registerSingleton<IFinancialCurrencyRepository>(FINANCIAL_CURRENCY_REPOSITORY, FinancialCurrencyRepository);
+
+import { FinancialDescriptionRepository } from '@modules/financial/financial-description/repositories/financial-description.repository';
+import { IFinancialDescriptionRepository } from '@modules/financial/financial-description/repositories/ifinancial-description.repository';
+import { FINANCIAL_DESCRIPTION_REPOSITORY } from '@modules/financial/financial-description/repositories/financial-description.tokens';
+container.registerSingleton<IFinancialDescriptionRepository>(FINANCIAL_DESCRIPTION_REPOSITORY, FinancialDescriptionRepository);
