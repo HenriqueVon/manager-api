@@ -37,3 +37,12 @@ model FinancialCurrency {
   
   @@map("financial_currencies")
 }
+
+model FinancialDescription {
+  id          String    @id @default(cuid())
+  description String    @unique @db.VarChar(100)  
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  
+  @@map("financial_descriptions")
+}
