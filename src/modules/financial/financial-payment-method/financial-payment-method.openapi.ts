@@ -38,7 +38,7 @@ openApiRegistry.registerPath({
   method      : 'get',
   path        : '/financial/payment-methods',
   tags        : ['Financial Payment Methods'],
-  summary     : 'List financial/payment-methods',
+  summary     : 'List',
   operationId : 'listFinancialPaymentMethod',
   request     : {
     query: listFinancialPaymentMethodQuerySchema,
@@ -86,7 +86,7 @@ openApiRegistry.registerPath({
   method      : 'post',
   path        : '/financial/payment-methods',
   tags        : ['Financial Payment Methods'],
-  summary     : 'Create FinancialPaymentMethod',
+  summary     : 'Create',
   operationId : 'createFinancialPaymentMethod',
   request     : {
     body: {
@@ -147,7 +147,7 @@ openApiRegistry.registerPath({
   method      : 'get',
   path        : '/financial/payment-methods/{id}',
   tags        : ['Financial Payment Methods'],
-  summary     : 'Get FinancialPaymentMethod by id',
+  summary     : 'Get by id',
   operationId : 'getFinancialPaymentMethodById',
   request     : {
     params: idParamsSchema,
@@ -198,7 +198,7 @@ openApiRegistry.registerPath({
   method      : 'patch',
   path        : '/financial/payment-methods/{id}',
   tags        : ['Financial Payment Methods'],
-  summary     : 'Update FinancialPaymentMethod',
+  summary     : 'Update',
   operationId : 'updateFinancialPaymentMethod',
   request     : {
     params : idParamsSchema,
@@ -268,7 +268,7 @@ openApiRegistry.registerPath({
   method      : 'delete',
   path        : '/financial/payment-methods/{id}',
   tags        : ['Financial Payment Methods'],
-  summary     : 'Delete FinancialPaymentMethod',
+  summary     : 'Delete by id',
   operationId : 'deleteFinancialPaymentMethod',
   request     : {
     params: idParamsSchema,

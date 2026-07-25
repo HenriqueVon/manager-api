@@ -38,7 +38,7 @@ openApiRegistry.registerPath({
   method      : 'get',
   path        : '/financial/descriptions',
   tags        : ['Financial Descriptions'],
-  summary     : 'List financial/descriptions',
+  summary     : 'List',
   operationId : 'listFinancialDescription',
   request     : {
     query: listFinancialDescriptionQuerySchema,
@@ -86,7 +86,7 @@ openApiRegistry.registerPath({
   method      : 'post',
   path        : '/financial/descriptions',
   tags        : ['Financial Descriptions'],
-  summary     : 'Create FinancialDescription',
+  summary     : 'Create',
   operationId : 'createFinancialDescription',
   request     : {
     body: {
@@ -147,7 +147,7 @@ openApiRegistry.registerPath({
   method      : 'get',
   path        : '/financial/descriptions/{id}',
   tags        : ['Financial Descriptions'],
-  summary     : 'Get FinancialDescription by id',
+  summary     : 'Get by id',
   operationId : 'getFinancialDescriptionById',
   request     : {
     params: idParamsSchema,
@@ -198,7 +198,7 @@ openApiRegistry.registerPath({
   method      : 'patch',
   path        : '/financial/descriptions/{id}',
   tags        : ['Financial Descriptions'],
-  summary     : 'Update FinancialDescription',
+  summary     : 'Update',
   operationId : 'updateFinancialDescription',
   request     : {
     params : idParamsSchema,
@@ -268,7 +268,7 @@ openApiRegistry.registerPath({
   method      : 'delete',
   path        : '/financial/descriptions/{id}',
   tags        : ['Financial Descriptions'],
-  summary     : 'Delete FinancialDescription',
+  summary     : 'Delete by id',
   operationId : 'deleteFinancialDescription',
   request     : {
     params: idParamsSchema,

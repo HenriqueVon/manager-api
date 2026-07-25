@@ -38,7 +38,7 @@ openApiRegistry.registerPath({
   method      : 'get',
   path        : '/ledgers',
   tags        : ['Ledgers'],
-  summary     : 'List ledgers',
+  summary     : 'List',
   operationId : 'listLedger',
   request     : {
     query: listLedgerQuerySchema,
@@ -87,7 +87,7 @@ openApiRegistry.registerPath({
   method      : 'post',
   path        : '/ledgers',
   tags        : ['Ledgers'],
-  summary     : 'Create Ledger',
+  summary     : 'Create',
   operationId : 'createLedger',
   request     : {
     body: {
@@ -150,7 +150,7 @@ openApiRegistry.registerPath({
   method      : 'get',
   path        : '/ledgers/{id}',
   tags        : ['Ledgers'],
-  summary     : 'Get Ledger by id',
+  summary     : 'Get by id',
   operationId : 'getLedgerById',
   request     : {
     params: idParamsSchema,
@@ -202,7 +202,7 @@ openApiRegistry.registerPath({
   method      : 'patch',
   path        : '/ledgers/{id}',
   tags        : ['Ledgers'],
-  summary     : 'Update Ledger',
+  summary     : 'Update',
   operationId : 'updateLedger',
   request     : {
     params : idParamsSchema,
@@ -274,7 +274,7 @@ openApiRegistry.registerPath({
   method      : 'delete',
   path        : '/ledgers/{id}',
   tags        : ['Ledgers'],
-  summary     : 'Delete Ledger',
+  summary     : 'Delete by id',
   operationId : 'deleteLedger',
   request     : {
     params: idParamsSchema,
