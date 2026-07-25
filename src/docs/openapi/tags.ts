@@ -16,4 +16,8 @@ export const openApiTags: OpenApiTag[] = [
     name        : 'Financial Descriptions',
     description : 'A list of financial descriptions used in the system.',
   },
+  {
+    name        : 'Financial Payment Methods',
+    description : 'A list of financial payment methods. Examples: CASH, CREDIT CARD, DEBIT CARD, PIX, etc.',
+  },
 ];
