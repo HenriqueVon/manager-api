@@ -2,59 +2,58 @@ import { openApiRegistry } from '@docs/openapi/registry';
 import { idParamsSchema } from '@shared/schemas/id.schema';
 import { errorResponseSchema } from '@shared/schemas/error-response.schema';
 import {
-  createLedgerSchema,
-  updateLedgerSchema,
-  listLedgerQuerySchema,
-  ledgerSchema,
-  listLedgerResponseSchema,
+  createFinancialPaymentMethodSchema,
+  updateFinancialPaymentMethodSchema,
+  listFinancialPaymentMethodQuerySchema,
+  financialPaymentMethodSchema,
+  listFinancialPaymentMethodResponseSchema,
 } from './schemas';
 
 openApiRegistry.register(
-  'Ledger',
-  ledgerSchema
+  'FinancialPaymentMethod',
+  financialPaymentMethodSchema
 );
 
 openApiRegistry.register(
-  'CreateLedgerInput',
-  createLedgerSchema
+  'CreateFinancialPaymentMethodInput',
+  createFinancialPaymentMethodSchema
 );
 
 openApiRegistry.register(
-  'UpdateLedgerInput',
-  updateLedgerSchema
+  'UpdateFinancialPaymentMethodInput',
+  updateFinancialPaymentMethodSchema
 );
 
 openApiRegistry.register(
-  'ListLedgerQuery',
-  listLedgerQuerySchema
+  'ListFinancialPaymentMethodQuery',
+  listFinancialPaymentMethodQuerySchema
 );
 
 openApiRegistry.register(
-  'ListLedgerResponse',
-  listLedgerResponseSchema
+  'ListFinancialPaymentMethodResponse',
+  listFinancialPaymentMethodResponseSchema
 );
 
 openApiRegistry.registerPath({
   method      : 'get',
-  path        : '/ledgers',
-  tags        : ['Ledgers'],
+  path        : '/financial/payment-methods',
+  tags        : ['Financial Payment Methods'],
   summary     : 'List',
-  operationId : 'listLedger',
+  operationId : 'listFinancialPaymentMethod',
   request     : {
-    query: listLedgerQuerySchema,
+    query: listFinancialPaymentMethodQuerySchema,
   },
   responses: {
     200: {
-      description : 'Ledger list returned successfully',
+      description : 'FinancialPaymentMethod list returned successfully',
       content     : {
         'application/json': {
-          schema  : listLedgerResponseSchema,
+          schema  : listFinancialPaymentMethodResponseSchema,
           example : {
             'items': [
               {
                 'id'        : 'cm1234567890abcdefghijkl',
-                'name'      : 'EUROPE',
-                'type'      : 'FIAT',
+                'name'      : 'CREDIT CARD',
                 'createdAt' : '2026-01-01T00:00:00.000Z',
                 'updatedAt' : '2026-01-01T00:00:00.000Z'
               }
@@ -85,19 +84,18 @@ openApiRegistry.registerPath({
 
 openApiRegistry.registerPath({
   method      : 'post',
-  path        : '/ledgers',
-  tags        : ['Ledgers'],
+  path        : '/financial/payment-methods',
+  tags        : ['Financial Payment Methods'],
   summary     : 'Create',
-  operationId : 'createLedger',
+  operationId : 'createFinancialPaymentMethod',
   request     : {
     body: {
       required : true,
       content  : {
         'application/json': {
-          schema  : createLedgerSchema,
+          schema  : createFinancialPaymentMethodSchema,
           example : {
-            'name' : 'EUROPE',
-            'type' : 'FIAT'
+            'name': 'CREDIT CARD'
           },
         },
       },
@@ -105,14 +103,13 @@ openApiRegistry.registerPath({
   },
   responses: {
     201: {
-      description : 'Ledger created successfully',
+      description : 'FinancialPaymentMethod created successfully',
       content     : {
         'application/json': {
-          schema  : ledgerSchema,
+          schema  : financialPaymentMethodSchema,
           example : {
             'id'        : 'cm1234567890abcdefghijkl',
-            'name'      : 'EUROPE',
-            'type'      : 'FIAT',
+            'name'      : 'CREDIT CARD',
             'createdAt' : '2026-01-01T00:00:00.000Z',
             'updatedAt' : '2026-01-01T00:00:00.000Z'
           },
@@ -136,7 +133,7 @@ openApiRegistry.registerPath({
       },
     },       
     409: {
-      description : 'Ledger already exists',
+      description : 'FinancialPaymentMethod already exists',
       content     : {
         'application/json': {
           schema: errorResponseSchema,
@@ -148,23 +145,22 @@ openApiRegistry.registerPath({
 
 openApiRegistry.registerPath({
   method      : 'get',
-  path        : '/ledgers/{id}',
-  tags        : ['Ledgers'],
+  path        : '/financial/payment-methods/{id}',
+  tags        : ['Financial Payment Methods'],
   summary     : 'Get by id',
-  operationId : 'getLedgerById',
+  operationId : 'getFinancialPaymentMethodById',
   request     : {
     params: idParamsSchema,
   },
   responses: {
     200: {
-      description : 'Ledger returned successfully',
+      description : 'FinancialPaymentMethod returned successfully',
       content     : {
         'application/json': {
-          schema  : ledgerSchema,
+          schema  : financialPaymentMethodSchema,
           example : {
             'id'        : 'cm1234567890abcdefghijkl',
-            'name'      : 'EUROPE',
-            'type'      : 'FIAT',
+            'name'      : 'CREDIT CARD',
             'createdAt' : '2026-01-01T00:00:00.000Z',
             'updatedAt' : '2026-01-01T00:00:00.000Z'
           },
@@ -188,7 +184,7 @@ openApiRegistry.registerPath({
       },
     },       
     404: {
-      description : 'Ledger not found',
+      description : 'FinancialPaymentMethod not found',
       content     : {
         'application/json': {
           schema: errorResponseSchema,
@@ -200,20 +196,19 @@ openApiRegistry.registerPath({
 
 openApiRegistry.registerPath({
   method      : 'patch',
-  path        : '/ledgers/{id}',
-  tags        : ['Ledgers'],
+  path        : '/financial/payment-methods/{id}',
+  tags        : ['Financial Payment Methods'],
   summary     : 'Update',
-  operationId : 'updateLedger',
+  operationId : 'updateFinancialPaymentMethod',
   request     : {
     params : idParamsSchema,
     body   : {
       required : true,
       content  : {
         'application/json': {
-          schema  : updateLedgerSchema,
+          schema  : updateFinancialPaymentMethodSchema,
           example : {
-            'name' : 'EUROPE',
-            'type' : 'FIAT'
+            'name': 'CREDIT CARD'
           },
         },
       },
@@ -221,14 +216,13 @@ openApiRegistry.registerPath({
   },
   responses: {
     200: {
-      description : 'Ledger updated successfully',
+      description : 'FinancialPaymentMethod updated successfully',
       content     : {
         'application/json': {
-          schema  : ledgerSchema,
+          schema  : financialPaymentMethodSchema,
           example : {
             'id'        : 'cm1234567890abcdefghijkl',
-            'name'      : 'EUROPE',
-            'type'      : 'FIAT',
+            'name'      : 'CREDIT CARD',
             'createdAt' : '2026-01-01T00:00:00.000Z',
             'updatedAt' : '2026-01-01T00:00:00.000Z'
           },
@@ -252,7 +246,7 @@ openApiRegistry.registerPath({
       },
     },       
     404: {
-      description : 'Ledger not found',
+      description : 'FinancialPaymentMethod not found',
       content     : {
         'application/json': {
           schema: errorResponseSchema,
@@ -260,7 +254,7 @@ openApiRegistry.registerPath({
       },
     },
     409: {
-      description : 'Ledger already exists',
+      description : 'FinancialPaymentMethod already exists',
       content     : {
         'application/json': {
           schema: errorResponseSchema,
@@ -272,16 +266,16 @@ openApiRegistry.registerPath({
 
 openApiRegistry.registerPath({
   method      : 'delete',
-  path        : '/ledgers/{id}',
-  tags        : ['Ledgers'],
+  path        : '/financial/payment-methods/{id}',
+  tags        : ['Financial Payment Methods'],
   summary     : 'Delete by id',
-  operationId : 'deleteLedger',
+  operationId : 'deleteFinancialPaymentMethod',
   request     : {
     params: idParamsSchema,
   },
   responses: {
     204: {
-      description: 'Ledger deleted successfully',
+      description: 'FinancialPaymentMethod deleted successfully',
     },
     400: {
       description : 'Invalid id',
@@ -300,7 +294,7 @@ openApiRegistry.registerPath({
       },
     },       
     404: {
-      description : 'Ledger not found',
+      description : 'FinancialPaymentMethod not found',
       content     : {
         'application/json': {
           schema: errorResponseSchema,

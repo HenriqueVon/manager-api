@@ -38,7 +38,7 @@ openApiRegistry.registerPath({
   method      : 'get',
   path        : '/financial/currencies',
   tags        : ['Financial Currencies'],
-  summary     : 'List financial/currencies',
+  summary     : 'List',
   operationId : 'listFinancialCurrency',
   request     : {
     query: listFinancialCurrencyQuerySchema,
@@ -87,7 +87,7 @@ openApiRegistry.registerPath({
   method      : 'post',
   path        : '/financial/currencies',
   tags        : ['Financial Currencies'],
-  summary     : 'Create FinancialCurrency',
+  summary     : 'Create',
   operationId : 'createFinancialCurrency',
   request     : {
     body: {
@@ -150,7 +150,7 @@ openApiRegistry.registerPath({
   method      : 'get',
   path        : '/financial/currencies/{id}',
   tags        : ['Financial Currencies'],
-  summary     : 'Get FinancialCurrency by id',
+  summary     : 'Get by id',
   operationId : 'getFinancialCurrencyById',
   request     : {
     params: idParamsSchema,
@@ -202,7 +202,7 @@ openApiRegistry.registerPath({
   method      : 'patch',
   path        : '/financial/currencies/{id}',
   tags        : ['Financial Currencies'],
-  summary     : 'Update FinancialCurrency',
+  summary     : 'Update',
   operationId : 'updateFinancialCurrency',
   request     : {
     params : idParamsSchema,
@@ -274,7 +274,7 @@ openApiRegistry.registerPath({
   method      : 'delete',
   path        : '/financial/currencies/{id}',
   tags        : ['Financial Currencies'],
-  summary     : 'Delete FinancialCurrency',
+  summary     : 'Delete by id',
   operationId : 'deleteFinancialCurrency',
   request     : {
     params: idParamsSchema,
