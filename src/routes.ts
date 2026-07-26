@@ -14,4 +14,7 @@ router.use(`${basePath}/financial/descriptions`, financialDescriptionRoute);
 
 import financialPaymentMethodRoute from '@modules/financial/financial-payment-method/financial-payment-method.routes';
 router.use(`${basePath}/financial/payment-methods`, financialPaymentMethodRoute);
+
+import financialBankAccountRoute from '@modules/financial/financial-bank-account/financial-bank-account.routes';
+router.use(`${basePath}/financial/bank-accounts`, financialBankAccountRoute);
 export default router;

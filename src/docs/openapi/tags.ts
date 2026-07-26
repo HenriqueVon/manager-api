@@ -20,4 +20,9 @@ export const openApiTags: OpenApiTag[] = [
     name        : 'Financial Payment Methods',
     description : 'A list of financial payment methods. Examples: CASH, CREDIT CARD, DEBIT CARD, PIX, etc.',
   },
+  {
+    name        : 'Financial Bank Accounts',
+    description : 'A list of financial bank accounts. Examples: REVOLUT, NOVO BANCO, NUBANK, ITAÚ etc.',
+  },
+
 ];

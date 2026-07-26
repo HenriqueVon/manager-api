@@ -25,6 +25,7 @@ model Ledger {
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
   
+  financialBankAccounts FinancialBankAccount[]
   @@map("ledgers")
 }
 
@@ -35,6 +36,7 @@ model FinancialCurrency {
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
   
+  financialBankAccounts FinancialBankAccount[]
   @@map("financial_currencies")
 }
 
@@ -54,4 +56,28 @@ model FinancialPaymentMethod {
   updatedAt  DateTime  @updatedAt @map("updated_at")
   
   @@map("financial_payment_methods")
+}
+
+enum FinancialBankAccountType {
+  PERSONAL
+  BUSINESS
+}
+
+model FinancialBankAccount {
+  id                  String    @id @default(cuid())
+  name                String    @unique @db.VarChar(100)
+  type                FinancialBankAccountType
+  balance             Decimal?  @db.Decimal(18, 2)
+  financialCurrencyId String    @map("financial_currency_id")
+  ledgerId            String    @map("ledger_id")  
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  
+  financialCurrency   FinancialCurrency @relation(fields: [financialCurrencyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  ledger              Ledger            @relation(fields: [ledgerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([financialCurrencyId])
+  @@index([ledgerId])
+
+  @@map("financial_bank_accounts")
 }
