@@ -19,3 +19,9 @@ import { FinancialPaymentMethodRepository } from '@modules/financial/financial-p
 import { IFinancialPaymentMethodRepository } from '@modules/financial/financial-payment-method/repositories/ifinancial-payment-method.repository';
 import { FINANCIAL_PAYMENT_METHOD_REPOSITORY } from '@modules/financial/financial-payment-method/repositories/financial-payment-method.tokens';
 container.registerSingleton<IFinancialPaymentMethodRepository>(FINANCIAL_PAYMENT_METHOD_REPOSITORY, FinancialPaymentMethodRepository);
+
+
+import { FinancialBankAccountRepository } from '@modules/financial/financial-bank-account/repositories/financial-bank-account.repository';
+import { IFinancialBankAccountRepository } from '@modules/financial/financial-bank-account/repositories/ifinancial-bank-account.repository';
+import { FINANCIAL_BANK_ACCOUNT_REPOSITORY } from '@modules/financial/financial-bank-account/repositories/financial-bank-account.tokens';
+container.registerSingleton<IFinancialBankAccountRepository>(FINANCIAL_BANK_ACCOUNT_REPOSITORY, FinancialBankAccountRepository);
