@@ -24,5 +24,8 @@ export const openApiTags: OpenApiTag[] = [
     name        : 'Financial Bank Accounts',
     description : 'A list of financial bank accounts. Examples: REVOLUT, NOVO BANCO, NUBANK, ITAÚ etc.',
   },
-
+  {
+    name        : 'Financial Funds',
+    description : 'A list of financial funds. Examples: BASIC EXPENSES, EMERGENCY FUND, VACATION FUND etc.',
+  },
 ];

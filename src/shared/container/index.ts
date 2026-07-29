@@ -25,3 +25,8 @@ import { FinancialBankAccountRepository } from '@modules/financial/financial-ban
 import { IFinancialBankAccountRepository } from '@modules/financial/financial-bank-account/repositories/ifinancial-bank-account.repository';
 import { FINANCIAL_BANK_ACCOUNT_REPOSITORY } from '@modules/financial/financial-bank-account/repositories/financial-bank-account.tokens';
 container.registerSingleton<IFinancialBankAccountRepository>(FINANCIAL_BANK_ACCOUNT_REPOSITORY, FinancialBankAccountRepository);
+
+import { FinancialFundRepository } from '@modules/financial/financial-fund/repositories/financial-fund.repository';
+import { IFinancialFundRepository } from '@modules/financial/financial-fund/repositories/ifinancial-fund.repository';
+import { FINANCIAL_FUND_REPOSITORY } from '@modules/financial/financial-fund/repositories/financial-fund.tokens';
+container.registerSingleton<IFinancialFundRepository>(FINANCIAL_FUND_REPOSITORY, FinancialFundRepository);
