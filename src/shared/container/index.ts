@@ -30,3 +30,8 @@ import { FinancialFundRepository } from '@modules/financial/financial-fund/repos
 import { IFinancialFundRepository } from '@modules/financial/financial-fund/repositories/ifinancial-fund.repository';
 import { FINANCIAL_FUND_REPOSITORY } from '@modules/financial/financial-fund/repositories/financial-fund.tokens';
 container.registerSingleton<IFinancialFundRepository>(FINANCIAL_FUND_REPOSITORY, FinancialFundRepository);
+
+import { FinancialCategoryRepository } from '@modules/financial/financial-category/repositories/financial-category.repository';
+import { IFinancialCategoryRepository } from '@modules/financial/financial-category/repositories/ifinancial-category.repository';
+import { FINANCIAL_CATEGORY_REPOSITORY } from '@modules/financial/financial-category/repositories/financial-category.tokens';
+container.registerSingleton<IFinancialCategoryRepository>(FINANCIAL_CATEGORY_REPOSITORY, FinancialCategoryRepository);

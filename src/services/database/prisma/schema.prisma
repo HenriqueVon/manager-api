@@ -27,6 +27,7 @@ model Ledger {
   
   financialBankAccounts FinancialBankAccount[]
   financialFunds        FinancialFund[]
+  financialCategories   FinancialCategory[]
   @@map("ledgers")
 }
 
@@ -100,4 +101,29 @@ model FinancialFund {
   @@index([ledgerId])
 
   @@map("financial_funds")
+}
+
+enum FinancialCategoryType {
+  INCOME
+  EXPENSE
+}
+
+model FinancialCategory {
+  id               String                 @id @default(cuid())
+  ledgerId         String                 @map("ledger_id")
+  parentCategoryId String?                @map("parent_category_id")
+  name             String                 @db.VarChar(100)
+  type             FinancialCategoryType
+  balance          Decimal                @default(0) @db.Decimal(18, 2)
+  createdAt        DateTime               @default(now()) @map("created_at")
+  updatedAt        DateTime               @updatedAt @map("updated_at")
+
+  ledger           Ledger              @relation(fields: [ledgerId], references: [id])  
+  parentCategory   FinancialCategory?  @relation("FinancialCategoryHierarchy", fields: [parentCategoryId], references: [id])
+  childCategories  FinancialCategory[] @relation("FinancialCategoryHierarchy")
+
+  @@unique([ledgerId, parentCategoryId, name])
+  @@index([ledgerId])
+  @@index([parentCategoryId])
+  @@map("financial_categories")
 }
