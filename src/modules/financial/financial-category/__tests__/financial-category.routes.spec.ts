@@ -111,6 +111,7 @@ describe('FinancialCategory routes', () => {
     });
 
     it('should return 400 when ledgerId is missing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { ledgerId: _ledgerId, ...bodyWithoutLedger } = validBody;
 
       const response = await request(app)
@@ -140,6 +141,7 @@ describe('FinancialCategory routes', () => {
     });
 
     it('should apply default balance before calling create controller', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { balance: _balance, ...bodyWithoutBalance } = validBody;
 
       const response = await request(app)
