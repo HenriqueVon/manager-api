@@ -120,6 +120,7 @@ describe('FinancialEntry routes', () => {
     });
 
     it('should apply default amountPaid', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { amountPaid: _amountPaid, ...bodyWithoutAmountPaid } = validBody;
 
       const response = await request(app)
