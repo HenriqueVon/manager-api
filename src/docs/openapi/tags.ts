@@ -32,4 +32,8 @@ export const openApiTags: OpenApiTag[] = [
     name        : 'Financial Categories',
     description : 'A list of expenses or incomes categories. Examples: Supermarket, Water, Electricity etc.',
   },
+  {
+    name        : 'Financial Entries',
+    description : 'A list of financial entries payable or receivable. Examples: Rent, Water, Electricity etc.',
+  },  
 ];

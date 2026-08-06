@@ -24,4 +24,7 @@ router.use(`${basePath}/financial/funds`, financialFundRoute);
 import financialCategoryRoute from '@modules/financial/financial-category/financial-category.routes';
 router.use(`${basePath}/financial/categories`, financialCategoryRoute);
 
+import financialEntryRoute from '@modules/financial/financial-entry/financial-entry.routes';
+router.use(`${basePath}/financial/entries`, financialEntryRoute); 
+
 export default router;

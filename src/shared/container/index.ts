@@ -20,7 +20,6 @@ import { IFinancialPaymentMethodRepository } from '@modules/financial/financial-
 import { FINANCIAL_PAYMENT_METHOD_REPOSITORY } from '@modules/financial/financial-payment-method/repositories/financial-payment-method.tokens';
 container.registerSingleton<IFinancialPaymentMethodRepository>(FINANCIAL_PAYMENT_METHOD_REPOSITORY, FinancialPaymentMethodRepository);
 
-
 import { FinancialBankAccountRepository } from '@modules/financial/financial-bank-account/repositories/financial-bank-account.repository';
 import { IFinancialBankAccountRepository } from '@modules/financial/financial-bank-account/repositories/ifinancial-bank-account.repository';
 import { FINANCIAL_BANK_ACCOUNT_REPOSITORY } from '@modules/financial/financial-bank-account/repositories/financial-bank-account.tokens';
@@ -35,3 +34,8 @@ import { FinancialCategoryRepository } from '@modules/financial/financial-catego
 import { IFinancialCategoryRepository } from '@modules/financial/financial-category/repositories/ifinancial-category.repository';
 import { FINANCIAL_CATEGORY_REPOSITORY } from '@modules/financial/financial-category/repositories/financial-category.tokens';
 container.registerSingleton<IFinancialCategoryRepository>(FINANCIAL_CATEGORY_REPOSITORY, FinancialCategoryRepository);
+
+import { FinancialEntryRepository } from '@modules/financial/financial-entry/repositories/financial-entry.repository';
+import { IFinancialEntryRepository } from '@modules/financial/financial-entry/repositories/ifinancial-entry.repository';
+import { FINANCIAL_ENTRY_REPOSITORY } from '@modules/financial/financial-entry/repositories/financial-entry.tokens';
+container.registerSingleton<IFinancialEntryRepository>(FINANCIAL_ENTRY_REPOSITORY, FinancialEntryRepository);

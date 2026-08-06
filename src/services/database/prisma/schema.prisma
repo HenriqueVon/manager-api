@@ -28,6 +28,7 @@ model Ledger {
   financialBankAccounts FinancialBankAccount[]
   financialFunds        FinancialFund[]
   financialCategories   FinancialCategory[]
+  financialEntries      FinancialEntry[]
   @@map("ledgers")
 }
 
@@ -49,6 +50,8 @@ model FinancialDescription {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   
+  financialEntries FinancialEntry[]
+
   @@map("financial_descriptions")
 }
 
@@ -96,6 +99,8 @@ model FinancialFund {
   
   financialCurrency   FinancialCurrency @relation(fields: [financialCurrencyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   ledger              Ledger            @relation(fields: [ledgerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  financialEntries    FinancialEntry[]
+
 
   @@index([financialCurrencyId])
   @@index([ledgerId])
@@ -121,9 +126,45 @@ model FinancialCategory {
   ledger           Ledger              @relation(fields: [ledgerId], references: [id])  
   parentCategory   FinancialCategory?  @relation("FinancialCategoryHierarchy", fields: [parentCategoryId], references: [id])
   childCategories  FinancialCategory[] @relation("FinancialCategoryHierarchy")
+  financialEntries FinancialEntry[]
 
   @@unique([ledgerId, parentCategoryId, name])
   @@index([ledgerId])
   @@index([parentCategoryId])
   @@map("financial_categories")
+}
+
+
+enum FinancialEntryType {
+  PAYABLE
+  RECEIVABLE
+}
+
+model FinancialEntry {
+  id                     String             @id @default(cuid())
+  type                   FinancialEntryType
+  dueDate                DateTime           @map("due_date")
+  paymentDate            DateTime?          @map("payment_date")
+  amount                 Decimal            @db.Decimal(18, 2)
+  amountPaid             Decimal            @default(0) @map("amount_paid") @db.Decimal(18, 2)
+  additionalDescription  String?            @map("additional_description")  @db.VarChar(100)
+  isMonthly              Boolean            @default(false) @map("is_monthly")
+  ledgerId               String             @map("ledger_id")
+  financialDescriptionId String             @map("financial_description_id")
+  financialFundId        String             @map("financial_fund_id")
+  financialCategoryId    String             @map("financial_category_id")
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  ledger                 Ledger               @relation(fields: [ledgerId], references: [id])  
+  financialDescription   FinancialDescription @relation(fields: [financialDescriptionId], references: [id])
+  financialFund          FinancialFund        @relation(fields: [financialFundId], references: [id])
+  financialCategory      FinancialCategory    @relation(fields: [financialCategoryId], references: [id])
+
+  @@index([ledgerId])
+  @@index([financialDescriptionId])
+  @@index([financialFundId])
+  @@index([financialCategoryId])
+
+  @@map("financial_entries")
 }
