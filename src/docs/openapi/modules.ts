@@ -1,3 +1,4 @@
+import '@modules/financial/financial-fund-transaction/financial-fund-transaction.openapi';
 import '@modules/financial/financial-entry/financial-entry.openapi';
 import '@modules/financial/financial-category/financial-category.openapi';
 import '@modules/financial/financial-fund/financial-fund.openapi';

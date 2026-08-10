@@ -9,6 +9,13 @@ export class AppError extends Error {
   }
 }
 
+
+export class BadRequestError extends AppError {
+  constructor(message = 'Bad Request') {
+    super(400, message, 'BAD_REQUEST');
+  } 
+}
+
 export class Unauthorized extends AppError {
   constructor(message = 'Unauthorized') {
     super(401, message, 'UNAUTHORIZED');

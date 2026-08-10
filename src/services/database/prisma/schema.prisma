@@ -25,10 +25,11 @@ model Ledger {
   createdAt  DateTime  @default(now()) @map("created_at")
   updatedAt  DateTime  @updatedAt @map("updated_at")
   
-  financialBankAccounts FinancialBankAccount[]
-  financialFunds        FinancialFund[]
-  financialCategories   FinancialCategory[]
-  financialEntries      FinancialEntry[]
+  financialBankAccounts     FinancialBankAccount[]
+  financialFunds            FinancialFund[]
+  financialCategories       FinancialCategory[]
+  financialEntries          FinancialEntry[]
+  financialFundTransactions FinancialFundTransaction[]
   @@map("ledgers")
 }
 
@@ -50,7 +51,8 @@ model FinancialDescription {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
   
-  financialEntries FinancialEntry[]
+  financialEntries          FinancialEntry[]
+  financialFundTransactions FinancialFundTransaction[]
 
   @@map("financial_descriptions")
 }
@@ -82,6 +84,8 @@ model FinancialBankAccount {
   financialCurrency   FinancialCurrency @relation(fields: [financialCurrencyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   ledger              Ledger            @relation(fields: [ledgerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
+  financialFundTransactions FinancialFundTransaction[]
+
   @@index([financialCurrencyId])
   @@index([ledgerId])
 
@@ -99,8 +103,9 @@ model FinancialFund {
   
   financialCurrency   FinancialCurrency @relation(fields: [financialCurrencyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
   ledger              Ledger            @relation(fields: [ledgerId], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  financialEntries    FinancialEntry[]
 
+  financialEntries          FinancialEntry[]
+  financialFundTransactions FinancialFundTransaction[]
 
   @@index([financialCurrencyId])
   @@index([ledgerId])
@@ -123,10 +128,11 @@ model FinancialCategory {
   createdAt        DateTime               @default(now()) @map("created_at")
   updatedAt        DateTime               @updatedAt @map("updated_at")
 
-  ledger           Ledger              @relation(fields: [ledgerId], references: [id])  
-  parentCategory   FinancialCategory?  @relation("FinancialCategoryHierarchy", fields: [parentCategoryId], references: [id])
-  childCategories  FinancialCategory[] @relation("FinancialCategoryHierarchy")
-  financialEntries FinancialEntry[]
+  ledger                     Ledger              @relation(fields: [ledgerId], references: [id])  
+  parentCategory             FinancialCategory?  @relation("FinancialCategoryHierarchy", fields: [parentCategoryId], references: [id])
+  childCategories            FinancialCategory[] @relation("FinancialCategoryHierarchy")
+  financialEntries           FinancialEntry[]
+  financialFundTransactions FinancialFundTransaction[]
 
   @@unique([ledgerId, parentCategoryId, name])
   @@index([ledgerId])
@@ -167,4 +173,34 @@ model FinancialEntry {
   @@index([financialCategoryId])
 
   @@map("financial_entries")
+}
+
+model FinancialFundTransaction {
+  id                     String             @id @default(cuid())  
+  transactionDate        DateTime           @map("transaction_date") @db.Date  
+  amountCredit           Decimal            @default(0) @map("amount_credit") @db.Decimal(18, 2)
+  amountDebit            Decimal            @default(0) @map("amount_debit") @db.Decimal(18, 2)  
+  additionalDescription  String?            @map("additional_description") @db.VarChar(100)  
+  ledgerId               String             @map("ledger_id")
+  financialDescriptionId String             @map("financial_description_id")
+  financialFundId        String             @map("financial_fund_id")
+  financialCategoryId    String             @map("financial_category_id")
+  financialBankAccountId String             @map("financial_bank_account_id")
+
+  createdAt              DateTime           @default(now()) @map("created_at")
+  updatedAt              DateTime           @updatedAt @map("updated_at")
+
+  ledger                 Ledger               @relation(fields: [ledgerId], references: [id])  
+  financialDescription   FinancialDescription @relation(fields: [financialDescriptionId], references: [id])
+  financialFund          FinancialFund        @relation(fields: [financialFundId], references: [id])
+  financialCategory      FinancialCategory    @relation(fields: [financialCategoryId], references: [id])
+  financialBankAccount   FinancialBankAccount @relation(fields: [financialBankAccountId], references: [id])
+
+  @@index([ledgerId])
+  @@index([financialDescriptionId])
+  @@index([financialFundId])
+  @@index([financialCategoryId])
+  @@index([financialBankAccountId])
+
+  @@map("financial_fund_transactions")
 }

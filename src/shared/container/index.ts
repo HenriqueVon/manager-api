@@ -39,3 +39,8 @@ import { FinancialEntryRepository } from '@modules/financial/financial-entry/rep
 import { IFinancialEntryRepository } from '@modules/financial/financial-entry/repositories/ifinancial-entry.repository';
 import { FINANCIAL_ENTRY_REPOSITORY } from '@modules/financial/financial-entry/repositories/financial-entry.tokens';
 container.registerSingleton<IFinancialEntryRepository>(FINANCIAL_ENTRY_REPOSITORY, FinancialEntryRepository);
+
+import { FinancialFundTransactionRepository } from '@modules/financial/financial-fund-transaction/repositories/financial-fund-transaction.repository';
+import { IFinancialFundTransactionRepository } from '@modules/financial/financial-fund-transaction/repositories/ifinancial-fund-transaction.repository';
+import { FINANCIAL_FUND_TRANSACTION_REPOSITORY } from '@modules/financial/financial-fund-transaction/repositories/financial-fund-transaction.tokens';
+container.registerSingleton<IFinancialFundTransactionRepository>(FINANCIAL_FUND_TRANSACTION_REPOSITORY, FinancialFundTransactionRepository);
