@@ -14,7 +14,7 @@ export const app = express();
 app.use(express.json());
 app.use(requestContainerMiddleware); 
 
-if (env.nodeEnv !== 'production') {
+if (env.nodeEnv !== 'production' && env.docsEnabled === 'true') {
   app.use('/docs', openApiRoutes);
 }
 

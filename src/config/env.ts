@@ -34,6 +34,8 @@ export const env = {
     url: required('DATABASE_URL'),
   },
 
-  apiKey: required('API_KEY')
+  apiKey: required('API_KEY'),
+
+  docsEnabled: optional('DOCS_ENABLED', 'false'),
 
 } as const;
