@@ -18,11 +18,6 @@ export class FinancialFundRepository implements IFinancialFundRepository {
       where: { id },
     });
   }
-  async findByName(name: string): Promise<FinancialFund | null> {
-    return prisma.financialFund.findUnique({
-      where: { name },
-    });
-  }
 
   async findMany(
     filters: Partial<FinancialFund> = {},

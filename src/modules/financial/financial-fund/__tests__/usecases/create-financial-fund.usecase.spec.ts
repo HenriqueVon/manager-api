@@ -9,15 +9,18 @@ describe('CreateFinancialFundUseCase', () => {
 
   beforeEach(() => {
     repo = {
-      findByName : vi.fn(),
-      create     : vi.fn(),
+      findMany : vi.fn(),
+      create   : vi.fn(),
     } as unknown as IFinancialFundRepository;
 
     sut = new CreateFinancialFundUseCase(repo);
   });
 
-  it('should trim + uppercase name, check uniqueness, then create', async () => {
-    (repo.findByName as any).mockResolvedValue(null);
+  it('should trim + uppercase name, check uniqueness by ledgerId and name, then create', async () => {
+    (repo.findMany as any).mockResolvedValue({
+      items : [],
+      total : 0,
+    });
 
     const createdFinancialFund = {
       id                  : 'fund-1',
@@ -38,19 +41,38 @@ describe('CreateFinancialFundUseCase', () => {
 
     const result = await sut.execute(input);
 
-    expect(repo.findByName).toHaveBeenCalledTimes(1);
-    expect(repo.findByName).toHaveBeenCalledWith('BASIC EXPENSES');
+    expect(repo.findMany).toHaveBeenCalledTimes(1);
+    expect(repo.findMany).toHaveBeenCalledWith(
+      {
+        ledgerId : 'ledger-1',
+        name     : 'BASIC EXPENSES',
+      },
+      {
+        limit: 1,
+      }
+    );
+
+    expect(repo.create).toHaveBeenCalledTimes(1);
     expect(repo.create).toHaveBeenCalledWith({
       ...input,
       name: 'BASIC EXPENSES',
     });
+
     expect(result).toBe(createdFinancialFund);
   });
 
-  it('should throw ConflictError if name already exists', async () => {
-    (repo.findByName as any).mockResolvedValue({
-      id   : 'existing-fund',
-      name : 'BASIC EXPENSES',
+  it('should throw ConflictError if name already exists in the same ledger', async () => {
+    (repo.findMany as any).mockResolvedValue({
+      items: [
+        {
+          id                  : 'existing-fund',
+          name                : 'BASIC EXPENSES',
+          balance             : 0,
+          ledgerId            : 'ledger-1',
+          financialCurrencyId : 'currency-1',
+        },
+      ],
+      total: 1,
     });
 
     const input = {
@@ -63,7 +85,17 @@ describe('CreateFinancialFundUseCase', () => {
       message: 'FinancialFund name already exists!',
     });
 
-    expect(repo.findByName).toHaveBeenCalledWith('BASIC EXPENSES');
+    expect(repo.findMany).toHaveBeenCalledTimes(1);
+    expect(repo.findMany).toHaveBeenCalledWith(
+      {
+        ledgerId : 'ledger-1',
+        name     : 'BASIC EXPENSES',
+      },
+      {
+        limit: 1,
+      }
+    );
+
     expect(repo.create).not.toHaveBeenCalled();
   });
 });

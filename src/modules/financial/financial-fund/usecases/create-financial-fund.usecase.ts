@@ -15,8 +15,13 @@ export class CreateFinancialFundUseCase {
   async execute(input: CreateFinancialFundDto): Promise<FinancialFund> {
     const name = input.name.trim().toUpperCase();
 
-    const existing = await this.financialFundRepository.findByName(name);
-    if (existing) {
+    const existing = await this.financialFundRepository.findMany(
+      { name, 
+        ledgerId: input.ledgerId 
+      }, 
+      { limit: 1 });    
+
+    if (existing.total > 0) {
       throw new ConflictError('FinancialFund name already exists!');
     }
 
