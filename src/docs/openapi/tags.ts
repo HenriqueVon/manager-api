@@ -36,4 +36,8 @@ export const openApiTags: OpenApiTag[] = [
     name        : 'Financial Entries',
     description : 'A list of financial entries payable or receivable. Examples: Rent, Water, Electricity etc.',
   },  
+  {
+    name        : 'Financial Fund Transactions',
+    description : 'A list of financial fund transactions. Examples: Rent, Water, Electricity etc.',
+  },
 ];

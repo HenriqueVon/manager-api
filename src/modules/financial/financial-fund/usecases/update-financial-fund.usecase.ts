@@ -17,9 +17,14 @@ export class UpdateFinancialFundUseCase {
 
     if (input.name !== undefined) {
       const name = input.name.trim().toUpperCase();
-      const existing = await this.financialFundRepository.findByName(name);
 
-      if (existing && existing.id !== id) {
+      const existing = await this.financialFundRepository.findMany(
+        { name, 
+          ledgerId: input.ledgerId 
+        }, 
+        { limit: 1 });    
+
+      if (existing.total > 0 && existing.items[0].id !== id) {
         throw new ConflictError('FinancialFund name already exists!');
       }
 

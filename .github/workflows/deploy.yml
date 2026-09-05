@@ -41,6 +41,7 @@ jobs:
         run: npm run test
 
   deploy-dev:
+    needs: validate
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     environment: dev
@@ -75,6 +76,7 @@ jobs:
           API_KEY: ${{ secrets.API_KEY }}        
 
   deploy-prod:
+    needs: validate
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prd

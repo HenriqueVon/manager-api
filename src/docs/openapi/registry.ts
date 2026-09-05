@@ -11,3 +11,13 @@ export const apiKeyAuth = openApiRegistry.registerComponent(
     name : 'x-api-key',
   }
 );
+
+export const bearerAuth = openApiRegistry.registerComponent(
+  'securitySchemes',
+  'BearerAuth',
+  {
+    type         : 'http',
+    scheme       : 'bearer',
+    bearerFormat : 'JWT',
+  },
+);
