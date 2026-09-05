@@ -1,9 +1,12 @@
 import './config/zod-openapi';
 import 'reflect-metadata';
 import express from 'express';
-import { requestContainerMiddleware } from '@shared/http/middlewares/request-container.middleware';
-import { apiKeyMiddleware } from '@shared/http/middlewares/api-key.middleware';
-import { errorHandler } from '@shared/http/middlewares/error-handlers.middleware';
+import { 
+  requestContainerMiddleware, 
+  apiKeyMiddleware, 
+  errorHandler,
+  authMiddleware
+} from '@shared/http/middlewares/';
 import routes from './routes';
 import '@shared/container';
 import { env } from './config/env';
@@ -18,8 +21,8 @@ if (env.nodeEnv !== 'production' && env.docsEnabled === 'true') {
   app.use('/docs', openApiRoutes);
 }
 
-// Global API key enforcement – all endpoints are protected
-app.use(apiKeyMiddleware); 
+app.use(apiKeyMiddleware); // Global API key enforcement – all endpoints are protected
+app.use(authMiddleware); // Global authentication enforcement – all endpoints are protected
 app.use(routes);
 app.use(errorHandler);
 

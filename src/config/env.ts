@@ -38,4 +38,6 @@ export const env = {
 
   docsEnabled: optional('DOCS_ENABLED', 'false'),
 
+  authApiBaseUrl: required('AUTH_API_URL'),
+
 } as const;

@@ -6,7 +6,7 @@ import {
   OpenApiGeneratorV3,
 } from '@asteasolutions/zod-to-openapi';
 
-import { apiKeyAuth, openApiRegistry } from './registry';
+import { apiKeyAuth, openApiRegistry, bearerAuth } from './registry';
 
 export function createOpenApiDocument() {
   const generator = new OpenApiGeneratorV3(
@@ -34,6 +34,9 @@ export function createOpenApiDocument() {
     security: [
       {
         [apiKeyAuth.name]: [],
+      },
+      {
+        [bearerAuth.name]: [],
       },
     ],
   });
