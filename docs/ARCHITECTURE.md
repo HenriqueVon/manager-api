@@ -43,7 +43,7 @@ A `Ledger` is the parent record for bank accounts, funds, categories, entries an
 |---|---|
 | [`src/app.ts`](../src/app.ts) | Builds the Express app (global middleware, docs, routes, error handler, `/health`). |
 | [`src/handler.ts`](../src/handler.ts) | AWS Lambda handler: `serverless(app)` via `serverless-http`. |
-| [`src/local.ts`](../src/local.ts) | Local server: `app.listen(env.app.port)`. Used by `npm run dev`. |
+| [`src/local.ts`](../src/local.ts) | Local server used by `npm run dev`: an outer Express server that mounts `/docs` (when enabled) and then `app`, listening on `env.app.port`. |
 
 ### Deployment
 
@@ -183,14 +183,13 @@ src/modules/financial/financial-fund/
 
 Traced for `POST /v1/api/financial/funds/transactions`. Every module follows the same path.
 
-1. **Entry.** In Lambda, [`handler.ts`](../src/handler.ts) adapts the event into Express. Locally, [`local.ts`](../src/local.ts) listens on `PORT`.
+1. **Entry.** In Lambda, [`handler.ts`](../src/handler.ts) adapts the event into Express. Locally, [`local.ts`](../src/local.ts) listens on `PORT` with an outer Express server; when `env.nodeEnv !== 'production'` and `env.docsEnabled === 'true'` it serves `/docs` first (before the API key check), then delegates everything to `app`. The Lambda never serves `/docs`.
 
 2. **Global middleware**, in the order registered in [`app.ts`](../src/app.ts):
    1. `express.json()`.
    2. **Request container:** [`requestContainerMiddleware`](../src/shared/http/middlewares/request-container.middleware.ts) sets `req.requestId` (random UUID if absent) and `req.container = container.createChildContainer()`.
-   3. `/docs` router, only when `env.nodeEnv !== 'production'` and `env.docsEnabled === 'true'`. It is mounted **before** the API key check.
-   4. **API key:** [`apiKeyMiddleware`](../src/shared/http/middlewares/api-key.middleware.ts) reads `x-api-key`. It throws `Unauthorized` (401) if the header is missing and `Forbidden` (403) if it does not match `env.apiKey`, using a timing-safe comparison ([`safe-compare.ts`](../src/shared/security/safe-compare.ts)).
-   5. **Authentication:** [`authMiddleware`](../src/shared/http/middlewares/auth.middleware.ts) creates `new AuthService()` and calls `authenticate(req.header('authorization'))`. It expects `Bearer <token>` and validates it via HTTP against `${AUTH_API_URL}/auth/validate` ([`auth.service.ts`](../src/services/auth/auth.service.ts)).
+   3. **API key:** [`apiKeyMiddleware`](../src/shared/http/middlewares/api-key.middleware.ts) reads `x-api-key`. It throws `Unauthorized` (401) if the header is missing and `Forbidden` (403) if it does not match `env.apiKey`, using a timing-safe comparison ([`safe-compare.ts`](../src/shared/security/safe-compare.ts)).
+   4. **Authentication:** [`authMiddleware`](../src/shared/http/middlewares/auth.middleware.ts) creates `new AuthService()` and calls `authenticate(req.header('authorization'))`. It expects `Bearer <token>` and validates it via HTTP against `${AUTH_API_URL}/auth/validate` ([`auth.service.ts`](../src/services/auth/auth.service.ts)).
 
 3. **Routing.** [`routes.ts`](../src/routes.ts) dispatches to `financialFundTransactionRoute`. This router is mounted **before** `/financial/funds`, so the funds router's `/:id` route does not capture `transactions`.
 
@@ -426,7 +425,7 @@ Use cases for update and delete do not check that the record exists before calli
 
 ## 10. Authentication and Security Boundary
 
-Every request outside `/docs` passes two global checks, in this order.
+Every request to `app` passes two global checks, in this order. `/docs` is outside `app`: it is served only by the local server (`local.ts`) and is public there.
 
 1. **API key.** [`apiKeyMiddleware`](../src/shared/http/middlewares/api-key.middleware.ts) requires the `x-api-key` header to equal `API_KEY`, compared with `crypto.timingSafeEqual`.
 2. **Bearer token.** [`authMiddleware`](../src/shared/http/middlewares/auth.middleware.ts) delegates to [`AuthService`](../src/services/auth/auth.service.ts), which:
@@ -473,7 +472,7 @@ Every request outside `/docs` passes two global checks, in this order.
 - **Swagger UI.**
   - [`docs/openapi/openapi.routes.ts`](../src/docs/openapi/openapi.routes.ts) serves `GET /docs/openapi.json` plus Swagger UI at `/docs`.
   - The document is generated on the **first request** to `/docs` and then reused.
-  - `app.ts` imports this router unconditionally (which loads the module OpenAPI files), but **mounts** it only when docs are enabled (see [Section 4](#4-request-lifecycle)).
+  - Only [`local.ts`](../src/local.ts) imports this router, and mounts it only when docs are enabled (see [Section 4](#4-request-lifecycle)). `app.ts` and `handler.ts` do not import any documentation module, so the docs code is not part of the Lambda bundle (`npm run offline`, which uses `handler.ts`, does not serve `/docs` either). The `zod-to-openapi` library itself is still loaded, because the response schemas imported by the routes use `.openapi()`.
 - **Tests.** The `src/docs/openapi/__tests__/` specs check the document against the runtime (see [Section 12](#12-testing-architecture)).
 
 **Known limitations of the documentation:**

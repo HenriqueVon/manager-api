@@ -71,6 +71,7 @@ npm run dev
 - Runs `tsc --noEmit --watch` and `tsx watch src/local.ts` in parallel.
 - You get live type errors and auto-restart.
 - Listens on `PORT` (default `3000`).
+- This is the only way to get the Swagger UI (`DOCS_ENABLED=true`, see [Section 11](#11-openapi--swagger)).
 
 **Serverless Offline (Lambda emulation)**
 
@@ -80,6 +81,7 @@ npm run offline
 
 - Runs `serverless offline --noTimeout --reloadHandler` using [`src/handler.ts`](../src/handler.ts).
 - Port is `3000` (`custom.serverless-offline.httpPort` in `serverless.yml`).
+- Does not serve `/docs`: the handler path does not include the documentation.
 
 VS Code users can use the **"Debug (tsx watch local.ts)"** launch configuration in [`.vscode/launch.json`](../.vscode/launch.json) to run `src/local.ts` with the inspector attached.
 
@@ -91,9 +93,9 @@ All endpoints are under `/v1/api/...`. Requests need:
 
 | File | Purpose |
 |---|---|
-| [`src/local.ts`](../src/local.ts) | Local HTTP server (`npm run dev`) |
+| [`src/local.ts`](../src/local.ts) | Local HTTP server (`npm run dev`): mounts `/docs` when enabled, then `app` |
 | [`src/handler.ts`](../src/handler.ts) | Lambda handler (`npm run offline`, deploys) |
-| [`src/app.ts`](../src/app.ts) | Express app composition (shared by both) |
+| [`src/app.ts`](../src/app.ts) | Express app composition (shared by both; no documentation) |
 | [`src/routes.ts`](../src/routes.ts) | Mounts all module routers |
 
 ### Serverless / AWS configuration relevant to development
@@ -592,7 +594,7 @@ shared/schemas/error-response.schema.ts  error bodies produced by the runtime
   → docs/openapi/openapi.routes.ts        GET /docs/openapi.json + Swagger UI at /docs (document built on first request)
 ```
 
-- The router is only **mounted** when `NODE_ENV !== 'production'` and `DOCS_ENABLED === 'true'`. The document is generated on the first request to `/docs` and then reused.
+- The router is imported and mounted only by [`src/local.ts`](../src/local.ts), and only when `NODE_ENV !== 'production'` and `DOCS_ENABLED === 'true'`. `app.ts` does not reference it, so the documentation code is not in the Lambda bundle. The document is generated on the first request to `/docs` and then reused.
 - To view the docs locally, set `DOCS_ENABLED=true` and open `http://localhost:<PORT>/docs`. `/docs` does not require the API key or a token.
 - Security is a single requirement: **both** `x-api-key` and the bearer token.
 
@@ -664,18 +666,19 @@ Middleware order in [`src/app.ts`](../src/app.ts):
 |---|---|---|
 | 1 | `express.json()` | Parses JSON bodies. |
 | 2 | `requestContainerMiddleware` | Sets `req.requestId` (not read anywhere else) and `req.container`. |
-| 3 | `/docs` → `openApiRoutes` | Only if `NODE_ENV !== 'production'` and `DOCS_ENABLED === 'true'`. |
-| 4 | `apiKeyMiddleware` | Requires `x-api-key` equal to `API_KEY` (timing-safe compare). |
-| 5 | `authMiddleware` | Requires `Authorization: Bearer <token>`; `AuthService` calls `GET ${AUTH_API_URL}/auth/validate`. Non-2xx → 401. |
-| 6 | `routes` | `/v1/api/...` module routers. |
-| 7 | `errorHandler` | Converts errors to responses (see [Section 12](#12-error-handling)). |
-| 8 | `GET /health` | Returns `{ ok: true, service: 'manager-api' }`. Registered after `errorHandler`. |
+| 3 | `apiKeyMiddleware` | Requires `x-api-key` equal to `API_KEY` (timing-safe compare). |
+| 4 | `authMiddleware` | Requires `Authorization: Bearer <token>`; `AuthService` calls `GET ${AUTH_API_URL}/auth/validate`. Non-2xx → 401. |
+| 5 | `routes` | `/v1/api/...` module routers. |
+| 6 | `errorHandler` | Converts errors to responses (see [Section 12](#12-error-handling)). |
+| 7 | `GET /health` | Returns `{ ok: true, service: 'manager-api' }`. Registered after `errorHandler`. |
+
+The local server ([`src/local.ts`](../src/local.ts)) wraps `app` in an outer Express server that mounts `/docs` → `openApiRoutes` **before** `app` (only if `NODE_ENV !== 'production'` and `DOCS_ENABLED === 'true'`). The Lambda handler uses `app` directly and has no `/docs`.
 
 ### Which endpoints are protected
 
 | Endpoint | API key | Bearer token |
 |---|---|---|
-| `/docs`, `/docs/openapi.json` (when enabled) | no | no |
+| `/docs`, `/docs/openapi.json` (local server only, when enabled) | no | no |
 | `/v1/api/**` | yes | yes |
 | `GET /health` | yes | yes |
 | Unknown paths | yes | yes (before the default 404) |
@@ -885,7 +888,8 @@ When adding a required variable, check all four places.
 **Request flow**
 
 ```
-express.json → requestContainer → (/docs) → apiKey → auth → routes → errorHandler → (/health)
+local only: (/docs) → app
+app:        express.json → requestContainer → apiKey → auth → routes → errorHandler → (/health)
 route → validateRequest → controllerAdapter → Controller → UseCase.execute → I<M>Repository → <M>Repository → prisma → PostgreSQL
 ```
 
