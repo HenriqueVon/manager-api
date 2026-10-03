@@ -89,6 +89,9 @@ model FinancialBankAccount {
   @@index([financialCurrencyId])
   @@index([ledgerId])
 
+  // Target of ledger-scoped composite foreign keys
+  @@unique([id, ledgerId])
+
   @@map("financial_bank_accounts")
 }
 
@@ -112,6 +115,9 @@ model FinancialFund {
 
   @@unique([ledgerId, name])
 
+  // Target of ledger-scoped composite foreign keys
+  @@unique([id, ledgerId])
+
   @@map("financial_funds")
 }
 
@@ -131,12 +137,17 @@ model FinancialCategory {
   updatedAt        DateTime               @updatedAt @map("updated_at")
 
   ledger                     Ledger              @relation(fields: [ledgerId], references: [id])  
-  parentCategory             FinancialCategory?  @relation("FinancialCategoryHierarchy", fields: [parentCategoryId], references: [id])
+  // The parent must belong to the same ledger (composite FK). Not checked for root categories (parentCategoryId NULL).
+  parentCategory             FinancialCategory?  @relation("FinancialCategoryHierarchy", fields: [parentCategoryId, ledgerId], references: [id, ledgerId], onDelete: Restrict, onUpdate: Restrict)
   childCategories            FinancialCategory[] @relation("FinancialCategoryHierarchy")
   financialEntries           FinancialEntry[]
   financialFundTransactions FinancialFundTransaction[]
 
   @@unique([ledgerId, parentCategoryId, name])
+
+  // Target of ledger-scoped composite foreign keys
+  @@unique([id, ledgerId])
+
   @@index([ledgerId])
   @@index([parentCategoryId])
   @@map("financial_categories")
@@ -166,8 +177,9 @@ model FinancialEntry {
 
   ledger                 Ledger               @relation(fields: [ledgerId], references: [id])  
   financialDescription   FinancialDescription @relation(fields: [financialDescriptionId], references: [id])
-  financialFund          FinancialFund        @relation(fields: [financialFundId], references: [id])
-  financialCategory      FinancialCategory    @relation(fields: [financialCategoryId], references: [id])
+  // Ledger-scoped composite FKs: fund and category must belong to the same ledger as the entry
+  financialFund          FinancialFund        @relation(fields: [financialFundId, ledgerId], references: [id, ledgerId], onDelete: Restrict, onUpdate: Restrict)
+  financialCategory      FinancialCategory    @relation(fields: [financialCategoryId, ledgerId], references: [id, ledgerId], onDelete: Restrict, onUpdate: Restrict)
 
   @@index([ledgerId])
   @@index([financialDescriptionId])
@@ -194,9 +206,10 @@ model FinancialFundTransaction {
 
   ledger                 Ledger               @relation(fields: [ledgerId], references: [id])  
   financialDescription   FinancialDescription @relation(fields: [financialDescriptionId], references: [id])
-  financialFund          FinancialFund        @relation(fields: [financialFundId], references: [id])
-  financialCategory      FinancialCategory    @relation(fields: [financialCategoryId], references: [id])
-  financialBankAccount   FinancialBankAccount @relation(fields: [financialBankAccountId], references: [id])
+  // Ledger-scoped composite FKs: fund, category and bank account must belong to the same ledger as the transaction
+  financialFund          FinancialFund        @relation(fields: [financialFundId, ledgerId], references: [id, ledgerId], onDelete: Restrict, onUpdate: Restrict)
+  financialCategory      FinancialCategory    @relation(fields: [financialCategoryId, ledgerId], references: [id, ledgerId], onDelete: Restrict, onUpdate: Restrict)
+  financialBankAccount   FinancialBankAccount @relation(fields: [financialBankAccountId, ledgerId], references: [id, ledgerId], onDelete: Restrict, onUpdate: Restrict)
 
   @@index([ledgerId])
   @@index([financialDescriptionId])
