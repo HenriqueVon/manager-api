@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { ConflictError } from '../../errors/app-error';
+import { ConflictError, NotFoundError } from '../../errors/app-error';
 
 function extractUniqueFields(err: any): string[] | undefined {
   // Prisma Adapter format
@@ -32,6 +32,11 @@ export async function prismaCall<T>(fn: () => Promise<T>): Promise<T> {
               : '';
         console.error(`Unique constraint violation${suffix}`);
         throw new ConflictError();
+      }
+
+      // Record to update/delete does not exist
+      if (err.code === 'P2025') {
+        throw new NotFoundError();
       }
     }
 
