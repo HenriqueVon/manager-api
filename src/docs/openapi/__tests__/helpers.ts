@@ -40,21 +40,6 @@ export function listExpressRoutes(router: Router): string[] {
   return routes.sort();
 }
 
-// Lists the operations of an OpenAPI document as 'METHOD /path/{param}', including the server base path
-export function listDocumentedOperations(document: any): string[] {
-  const operations: string[] = [];
-
-  for (const [path, item] of Object.entries<any>(document.paths)) {
-    for (const method of HTTP_METHODS) {
-      if (item[method]) {
-        operations.push(`${method.toUpperCase()} ${API_BASE_PATH}${path}`);
-      }
-    }
-  }
-
-  return operations.sort();
-}
-
 export function forEachOperation(
   document: any,
   callback: (name: string, operation: any, path: string, method: string) => void
@@ -66,4 +51,14 @@ export function forEachOperation(
       }
     }
   }
+}
+
+// Lists the operations of an OpenAPI document as 'METHOD /path/{param}', including the server base path
+export function listDocumentedOperations(document: any): string[] {
+  const operations: string[] = [];
+  forEachOperation(document, (_name, _operation, path, method) => {
+    operations.push(`${method.toUpperCase()} ${API_BASE_PATH}${path}`);
+  });
+
+  return operations.sort();
 }
