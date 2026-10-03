@@ -1,8 +1,15 @@
 import { z } from 'zod';
-import { createFinancialBankAccountSchema } from './create-financial-bank-account.schema';
+import { FinancialBankAccountType } from '@prisma/client';
+import { decimalString, dateTimeString } from '@shared/schemas/output.schema';
 
-export const financialBankAccountSchema = createFinancialBankAccountSchema.extend({
-  id        : z.string(),
-  createdAt : z.string().datetime(),
-  updatedAt : z.string().datetime(),
-});
+// Response shape: the Prisma `FinancialBankAccount` model as serialized to JSON
+export const financialBankAccountSchema = z.object({
+  id                  : z.string(),
+  name                : z.string(),
+  type                : z.enum(FinancialBankAccountType),
+  balance             : decimalString.nullable(),
+  financialCurrencyId : z.string(),
+  ledgerId            : z.string(),
+  createdAt           : dateTimeString,
+  updatedAt           : dateTimeString,
+}).openapi('FinancialBankAccount');

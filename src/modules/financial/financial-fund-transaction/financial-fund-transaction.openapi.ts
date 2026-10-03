@@ -1,6 +1,6 @@
 import { openApiRegistry } from '@docs/openapi/registry';
+import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
-import { errorResponseSchema } from '@shared/schemas/error-response.schema';
 import {
   createFinancialFundTransactionSchema,
   updateFinancialFundTransactionSchema,
@@ -9,30 +9,43 @@ import {
   listFinancialFundTransactionResponseSchema,
 } from './schemas';
 
-openApiRegistry.register(
-  'FinancialFundTransaction',
-  financialFundTransactionSchema
-);
-
-openApiRegistry.register(
+const createFinancialFundTransactionInput = openApiRegistry.register(
   'CreateFinancialFundTransactionInput',
   createFinancialFundTransactionSchema
 );
 
-openApiRegistry.register(
+// minProperties documents the "at least one field" refine rule
+const updateFinancialFundTransactionInput = openApiRegistry.register(
   'UpdateFinancialFundTransactionInput',
-  updateFinancialFundTransactionSchema
+  updateFinancialFundTransactionSchema.openapi({ minProperties: 1 })
 );
 
-openApiRegistry.register(
-  'ListFinancialFundTransactionQuery',
-  listFinancialFundTransactionQuerySchema
-);
+const financialFundTransactionInputExample = {
+  transactionDate        : '2026-01-01',
+  amountCredit           : 100,
+  amountDebit            : 0,
+  additionalDescription  : '1/10 - Rent payment for January 2026',
+  ledgerId               : 'cm1234567890abcdefghijkl',
+  financialDescriptionId : 'cm1234567890abcdefghijkl',
+  financialFundId        : 'cm1234567890abcdefghijkl',
+  financialCategoryId    : 'cm1234567890abcdefghijkl',
+  financialBankAccountId : 'cm1234567890abcdefghijkl',
+};
 
-openApiRegistry.register(
-  'ListFinancialFundTransactionResponse',
-  listFinancialFundTransactionResponseSchema
-);
+const financialFundTransactionExample = {
+  id                     : 'cm1234567890abcdefghijkl',
+  transactionDate        : '2026-01-01T00:00:00.000Z',
+  amountCredit           : '100',
+  amountDebit            : '0',
+  additionalDescription  : '1/10 - Rent payment for January 2026',
+  ledgerId               : 'cm1234567890abcdefghijkl',
+  financialDescriptionId : 'cm1234567890abcdefghijkl',
+  financialFundId        : 'cm1234567890abcdefghijkl',
+  financialCategoryId    : 'cm1234567890abcdefghijkl',
+  financialBankAccountId : 'cm1234567890abcdefghijkl',
+  createdAt              : '2026-01-01T00:00:00.000Z',
+  updatedAt              : '2026-01-01T00:00:00.000Z',
+};
 
 openApiRegistry.registerPath({
   method      : 'get',
@@ -49,44 +62,12 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : listFinancialFundTransactionResponseSchema,
-          example : {
-            'items': [
-              {
-                'id'                     : 'cm1234567890abcdefghijkl',
-                'transactionDate'        : '2026-01-01',
-                'amountCredit'           : 100,
-                'amountDebit'            : 0,
-                'additionalDescription'  : '1/10 - Rent payment for January 2026',
-                'ledgerId'               : 'cm1234567890abcdefghijkl',
-                'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-                'financialFundId'        : 'cm1234567890abcdefghijkl',
-                'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-                'financialBankAccountId' : 'cm1234567890abcdefghijkl',
-                'createdAt'              : '2026-01-01T00:00:00.000Z',
-                'updatedAt'              : '2026-01-01T00:00:00.000Z'
-              }
-            ],
-            'total': 1
-          },
+          example : { items: [financialFundTransactionExample], total: 1 },
         },
       },
     },
-    400: {
-      description : 'Invalid query parameters',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },    
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
   },
 });
 
@@ -101,18 +82,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : createFinancialFundTransactionSchema,
-          example : {
-            'transactionDate'        : '2026-01-01',
-            'amountCredit'           : 100,
-            'amountDebit'            : 0,
-            'additionalDescription'  : '1/10 - Rent payment for January 2026',
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-            'financialBankAccountId' : 'cm1234567890abcdefghijkl'
-          },
+          schema  : createFinancialFundTransactionInput,
+          example : financialFundTransactionInputExample,
         },
       },
     },
@@ -123,47 +94,12 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialFundTransactionSchema,
-          example : {
-            'id'                     : 'cm1234567890abcdefghijkl',
-            'transactionDate'        : '2026-01-01',
-            'amountCredit'           : 100,
-            'amountDebit'            : 0,
-            'additionalDescription'  : '1/10 - Rent payment for January 2026',
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-            'financialBankAccountId' : 'cm1234567890abcdefghijkl',
-            'createdAt'              : '2026-01-01T00:00:00.000Z',
-            'updatedAt'              : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialFundTransactionExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request body',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    409: {
-      description : 'FinancialFundTransaction already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400: responseRef('ValidationOrBusinessRuleError'),
+    ...globalErrorResponses,
   },
 });
 
@@ -182,47 +118,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialFundTransactionSchema,
-          example : {
-            'id'                     : 'cm1234567890abcdefghijkl',
-            'transactionDate'        : '2026-01-01',
-            'amountCredit'           : 100,
-            'amountDebit'            : 0,
-            'additionalDescription'  : '1/10 - Rent payment for January 2026',
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-            'financialBankAccountId' : 'cm1234567890abcdefghijkl',
-            'createdAt'              : '2026-01-01T00:00:00.000Z',
-            'updatedAt'              : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialFundTransactionExample,
         },
       },
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialFundTransaction not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
 
@@ -238,18 +140,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : updateFinancialFundTransactionSchema,
-          example : {
-            'transactionDate'        : '2026-01-01',
-            'amountCredit'           : 100,
-            'amountDebit'            : 0,
-            'additionalDescription'  : '1/10 - Rent payment for January 2026',
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-            'financialBankAccountId' : 'cm1234567890abcdefghijkl'
-          },
+          schema  : updateFinancialFundTransactionInput,
+          example : financialFundTransactionInputExample,
         },
       },
     },
@@ -260,55 +152,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialFundTransactionSchema,
-          example : {
-            'id'                     : 'cm1234567890abcdefghijkl',
-            'transactionDate'        : '2026-01-01',
-            'amountCredit'           : 100,
-            'amountDebit'            : 0,
-            'additionalDescription'  : '1/10 - Rent payment for January 2026',
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-            'financialBankAccountId' : 'cm1234567890abcdefghijkl',
-            'createdAt'              : '2026-01-01T00:00:00.000Z',
-            'updatedAt'              : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialFundTransactionExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialFundTransaction not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    409: {
-      description : 'FinancialFundTransaction already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationOrBusinessRuleError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
 
@@ -325,29 +175,8 @@ openApiRegistry.registerPath({
     204: {
       description: 'FinancialFundTransaction deleted successfully',
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialFundTransaction not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });

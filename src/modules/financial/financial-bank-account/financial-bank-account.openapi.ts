@@ -1,6 +1,6 @@
 import { openApiRegistry } from '@docs/openapi/registry';
+import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
-import { errorResponseSchema } from '@shared/schemas/error-response.schema';
 import {
   createFinancialBankAccountSchema,
   updateFinancialBankAccountSchema,
@@ -9,30 +9,35 @@ import {
   listFinancialBankAccountResponseSchema,
 } from './schemas';
 
-openApiRegistry.register(
-  'FinancialBankAccount',
-  financialBankAccountSchema
-);
-
-openApiRegistry.register(
+const createFinancialBankAccountInput = openApiRegistry.register(
   'CreateFinancialBankAccountInput',
   createFinancialBankAccountSchema
 );
 
-openApiRegistry.register(
+// minProperties documents the "at least one field" refine rule
+const updateFinancialBankAccountInput = openApiRegistry.register(
   'UpdateFinancialBankAccountInput',
-  updateFinancialBankAccountSchema
+  updateFinancialBankAccountSchema.openapi({ minProperties: 1 })
 );
 
-openApiRegistry.register(
-  'ListFinancialBankAccountQuery',
-  listFinancialBankAccountQuerySchema
-);
+const financialBankAccountInputExample = {
+  name                : 'REVOLUT',
+  type                : 'PERSONAL',
+  balance             : 1000,
+  ledgerId            : 'cm1234567890abcdefghijkl',
+  financialCurrencyId : 'cm1234567890abcdefghijkl',
+};
 
-openApiRegistry.register(
-  'ListFinancialBankAccountResponse',
-  listFinancialBankAccountResponseSchema
-);
+const financialBankAccountExample = {
+  id                  : 'cm1234567890abcdefghijkl',
+  name                : 'REVOLUT',
+  type                : 'PERSONAL',
+  balance             : '1000',
+  financialCurrencyId : 'cm1234567890abcdefghijkl',
+  ledgerId            : 'cm1234567890abcdefghijkl',
+  createdAt           : '2026-01-01T00:00:00.000Z',
+  updatedAt           : '2026-01-01T00:00:00.000Z',
+};
 
 openApiRegistry.registerPath({
   method      : 'get',
@@ -49,40 +54,12 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : listFinancialBankAccountResponseSchema,
-          example : {
-            'items': [
-              {
-                'id'                  : 'cm1234567890abcdefghijkl',
-                'name'                : 'REVOLUT',
-                'type'                : 'PERSONAL',
-                'balance'             : 1000,
-                'ledgerId'            : 'cm1234567890abcdefghijkl',
-                'financialCurrencyId' : 'jj1234567543abcdefghipui',
-                'createdAt'           : '2026-01-01T00:00:00.000Z',
-                'updatedAt'           : '2026-01-01T00:00:00.000Z'
-              }
-            ],
-            'total': 1
-          },
+          example : { items: [financialBankAccountExample], total: 1 },
         },
       },
     },
-    400: {
-      description : 'Invalid query parameters',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },    
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
   },
 });
 
@@ -97,14 +74,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : createFinancialBankAccountSchema,
-          example : {
-            'name'                : 'REVOLUT',
-            'type'                : 'PERSONAL',
-            'balance'             : 1000,
-            'ledgerId'            : 'cm1234567890abcdefghijkl',
-            'financialCurrencyId' : 'jj1234567543abcdefghipui'
-          },
+          schema  : createFinancialBankAccountInput,
+          example : financialBankAccountInputExample,
         },
       },
     },
@@ -115,43 +86,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialBankAccountSchema,
-          example : {
-            'id'                  : 'cm1234567890abcdefghijkl',
-            'name'                : 'REVOLUT',
-            'type'                : 'PERSONAL',
-            'balance'             : 1000,
-            'ledgerId'            : 'cm1234567890abcdefghijkl',
-            'financialCurrencyId' : 'jj1234567543abcdefghipui',
-            'createdAt'           : '2026-01-01T00:00:00.000Z',
-            'updatedAt'           : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialBankAccountExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request body',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    409: {
-      description : 'FinancialBankAccount already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
   },
 });
 
@@ -170,43 +111,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialBankAccountSchema,
-          example : {
-            'id'                  : 'cm1234567890abcdefghijkl',
-            'name'                : 'REVOLUT',
-            'type'                : 'PERSONAL',
-            'balance'             : 1000,
-            'ledgerId'            : 'cm1234567890abcdefghijkl',
-            'financialCurrencyId' : 'jj1234567543abcdefghipui',
-            'createdAt'           : '2026-01-01T00:00:00.000Z',
-            'updatedAt'           : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialBankAccountExample,
         },
       },
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialBankAccount not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
 
@@ -222,14 +133,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : updateFinancialBankAccountSchema,
-          example : {
-            'name'                : 'REVOLUT',
-            'type'                : 'PERSONAL',
-            'balance'             : 1000,
-            'ledgerId'            : 'cm1234567890abcdefghijkl',
-            'financialCurrencyId' : 'jj1234567543abcdefghipui'
-          },
+          schema  : updateFinancialBankAccountInput,
+          example : financialBankAccountInputExample,
         },
       },
     },
@@ -240,51 +145,14 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialBankAccountSchema,
-          example : {
-            'id'                  : 'cm1234567890abcdefghijkl',
-            'name'                : 'REVOLUT',
-            'type'                : 'PERSONAL',
-            'balance'             : 1000,
-            'ledgerId'            : 'cm1234567890abcdefghijkl',
-            'financialCurrencyId' : 'jj1234567543abcdefghipui',
-            'createdAt'           : '2026-01-01T00:00:00.000Z',
-            'updatedAt'           : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialBankAccountExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialBankAccount not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    409: {
-      description : 'FinancialBankAccount already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
   },
 });
 
@@ -301,29 +169,8 @@ openApiRegistry.registerPath({
     204: {
       description: 'FinancialBankAccount deleted successfully',
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialBankAccount not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
