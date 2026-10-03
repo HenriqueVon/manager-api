@@ -174,8 +174,8 @@ Create `src/modules/financial/<m>/` (or `src/modules/<m>/` for a top-level resou
 | `create-<m>.schema.ts` | Body validation for `POST`. Use `.strict()`. | [create-financial-payment-method.schema.ts](../src/modules/financial/financial-payment-method/schemas/create-financial-payment-method.schema.ts) |
 | `update-<m>.schema.ts` | Body validation for `PATCH`. Fields optional, `.strict()`, `.refine(...)` requiring at least one field. | [update-financial-payment-method.schema.ts](../src/modules/financial/financial-payment-method/schemas/update-financial-payment-method.schema.ts) |
 | `list-<m>-query.schema.ts` | Query validation for `GET /`: `limit`, `offset`, `orderBy` (module-specific enum), `orderDirection`, `.strict()`. | [list-financial-payment-method-query.schema.ts](../src/modules/financial/financial-payment-method/schemas/list-financial-payment-method-query.schema.ts) |
-| `<m>.schema.ts` | Response schema for OpenAPI: `create<M>Schema.extend({ id, createdAt, updatedAt })`. | [financial-payment-method.schema.ts](../src/modules/financial/financial-payment-method/schemas/financial-payment-method.schema.ts) |
-| `list-<m>-response.schema.ts` | `paginatedResponseSchema(<m>Schema)` for OpenAPI. | [list-financial-payment-method-response.schema.ts](../src/modules/financial/financial-payment-method/schemas/list-financial-payment-method-response.schema.ts) |
+| `<m>.schema.ts` | Response schema for OpenAPI: every field of the Prisma model as serialized to JSON (`decimalString` for `Decimal`, `dateTimeString` for `DateTime`, `.nullable()` for optional columns), named with `.openapi('<M>')`. Not derived from the create schema. | [financial-fund.schema.ts](../src/modules/financial/financial-fund/schemas/financial-fund.schema.ts) |
+| `list-<m>-response.schema.ts` | `paginatedResponseSchema(<m>Schema).openapi('List<M>Response')` for OpenAPI. | [list-financial-fund-response.schema.ts](../src/modules/financial/financial-fund/schemas/list-financial-fund-response.schema.ts) |
 | `index.ts` | Barrel re-exporting the five schemas. | [schemas/index.ts](../src/modules/financial/financial-payment-method/schemas/index.ts) |
 
 Details: [Section 6](#6-schemas-and-validation).
@@ -248,15 +248,17 @@ Reference: [financial-payment-method.routes.ts](../src/modules/financial/financi
 
 Depends on step 2.
 
-- Register schemas with `openApiRegistry.register(...)`.
-- Register five paths with `openApiRegistry.registerPath(...)`, using the module's tag name.
+- Register the create and update input schemas with `openApiRegistry.register(...)` and use the **returned** schemas in `registerPath`. Add `.openapi({ minProperties: 1 })` to the update schema.
+- Define one entity example (as the API returns it: decimals as strings, dates as date-time) and one input example.
+- Register five paths with `openApiRegistry.registerPath(...)`, using the module's tag name. Error responses use `responseRef(...)` and `...globalErrorResponses` from [`docs/openapi/responses.ts`](../src/docs/openapi/responses.ts). Add `409: responseRef('Conflict')` only if the model has a unique constraint.
 
-Reference: [financial-payment-method.openapi.ts](../src/modules/financial/financial-payment-method/financial-payment-method.openapi.ts). Document the responses your code actually produces (see [Section 11](#11-openapi--swagger)).
+Reference: [financial-payment-method.openapi.ts](../src/modules/financial/financial-payment-method/financial-payment-method.openapi.ts). Details: [Section 11](#11-openapi--swagger).
 
 ### Step 11 — Tests (`__tests__/`)
 
 - `__tests__/<m>.routes.spec.ts`: validation and routing tests.
 - `__tests__/usecases/<operation>-<m>.usecase.spec.ts`: one per use case.
+- Add the module to the `modules` table in [`openapi-contract.spec.ts`](../src/docs/openapi/__tests__/openapi-contract.spec.ts). The other OpenAPI specs cover new routes and Prisma models automatically.
 
 Reference: [financial-fund-transaction/\_\_tests\_\_/](../src/modules/financial/financial-fund-transaction/__tests__) (most recent style). Details: [Section 14](#14-testing).
 
@@ -339,11 +341,11 @@ Add or update the Zod schema and pass it as `validateRequest({ body })`. After v
 
 ### OpenAPI
 
-Update `<m>.openapi.ts` with `registerPath(...)`. Paths there are relative to `/v1/api` (e.g. `'/financial/funds/{id}'`). This is not generated from routes: every change is manual.
+Update `<m>.openapi.ts` with `registerPath(...)`. Paths there are relative to `/v1/api` (e.g. `'/financial/funds/{id}'`). The path definition is not generated from routes, but `openapi-document.spec.ts` fails if a route is missing from the documentation or a documented path has no route. Use the shared responses from `docs/openapi/responses.ts` for errors (see [Section 11](#11-openapi--swagger)).
 
 ### Tests
 
-Add cases to `<m>.routes.spec.ts` for the validation rules, and a use case spec for the new logic. Note that route specs mock `controllerAdapter`, so they do not run controllers.
+Add cases to `<m>.routes.spec.ts` for the validation rules, and a use case spec for the new logic. Note that route specs mock `controllerAdapter`, so they do not run controllers. The OpenAPI specs in `src/docs/openapi/__tests__/` assume the five CRUD operations per module; a non-CRUD endpoint needs its own expectations there.
 
 ---
 
@@ -360,7 +362,7 @@ Add cases to `<m>.routes.spec.ts` for the validation rules, and a use case spec 
   - `orderDirection: z.enum(['asc', 'desc']).optional()`
   - `.strict()`
 - `:id` is validated with the shared `idParamsSchema` (`z.cuid({ error: 'Invalid id' })`) on `GET`, `PATCH` and `DELETE /:id`.
-- The response schema is `create<M>Schema.extend({ id: z.string(), createdAt: z.string().datetime(), updatedAt: z.string().datetime() })` and the list response is `paginatedResponseSchema(<m>Schema)`. Both are used **only** for OpenAPI.
+- The response schema (`<m>.schema.ts`) lists every field of the Prisma model with its JSON type (`decimalString`, `dateTimeString`, `.nullable()` for optional columns) and is named with `.openapi('<M>')`; the list response is `paginatedResponseSchema(<m>Schema).openapi('List<M>Response')`. Both are used **only** for OpenAPI and its tests.
 - `validateRequest` replaces `req.params`, `req.query` and `req.body` with the parsed result.
 
 ### STRONG CONVENTIONS
@@ -380,7 +382,6 @@ Add cases to `<m>.routes.spec.ts` for the validation rules, and a use case spec 
   - entries: `new Date(`${value}T00:00:00.000Z`)` ([create-financial-entry.schema.ts](../src/modules/financial/financial-entry/schemas/create-financial-entry.schema.ts));
   - fund transactions: `new Date(value)` ([create-financial-fund-transaction.schema.ts](../src/modules/financial/financial-fund-transaction/schemas/create-financial-fund-transaction.schema.ts)).
 - `additionalDescription` is required in the entry and fund-transaction create schemas while the column is nullable.
-- Because response schemas extend create schemas, they inherit input rules (`.strict()`, min/max, transforms).
 
 ---
 
@@ -503,7 +504,7 @@ import { prisma } from '@services/database/prisma/prisma.client';
 | `findMany(filters, params)` | `findMany` + `count` | no |
 | `exists(id)` | `count({ where: { id } }) > 0` | no |
 
-[`prismaCall`](../src/shared/database/prisma/prisma-call.ts) converts Prisma `P2002` (unique violation) into `ConflictError` and rethrows everything else unchanged. No repository uses `$transaction` or raw SQL.
+[`prismaCall`](../src/shared/database/prisma/prisma-call.ts) converts Prisma `P2002` (unique violation) into `ConflictError`, `P2025` (record to update or delete not found) into `NotFoundError`, and rethrows everything else unchanged. This is where update and delete get their 404. No repository uses `$transaction` or raw SQL.
 
 ### Pagination, `findMany`, count (invariant)
 
@@ -538,7 +539,7 @@ Repositories return Prisma model records (or `null` from finders, `void` from `d
 
 ### `exists()`
 
-`exists(id)` is declared in every interface and implemented in every repository, but **nothing calls it**: no use case and no test. It is part of the existing contract. Implementing it keeps the module consistent, but no use case is required to call it.
+`exists(id)` is declared in every interface and implemented in every repository, but **no application code calls it** (the OpenAPI contract spec only provides it in its repository mocks). It is part of the existing contract. Implementing it keeps the module consistent, but no use case is required to call it.
 
 ---
 
@@ -581,33 +582,48 @@ Not managed by DI: `AuthService` (created with `new` in `authMiddleware`), the P
 ### Flow
 
 ```
-<m>.openapi.ts                       registers schemas + paths (side effect on import)
-  → docs/openapi/registry.ts         shared OpenAPIRegistry + ApiKeyAuth / BearerAuth schemes
-  → docs/openapi/modules.ts          imports every <m>.openapi.ts
-  → docs/openapi/document.ts         OpenApiGeneratorV3 → OpenAPI 3.0.0 (tags from tags.ts, server http://localhost:${PORT}/v1/api)
-  → docs/openapi/openapi.routes.ts   GET /docs/openapi.json + Swagger UI at /docs
+shared/schemas/error-response.schema.ts  error bodies produced by the runtime
+  → docs/openapi/responses.ts             registers error schemas + shared responses; exports responseRef, globalErrorResponses
+<m>/schemas/<m>.schema.ts                 response schema (Prisma model as JSON), .openapi('<M>')
+<m>.openapi.ts                            registers input schemas + five paths (side effect on import)
+  → docs/openapi/registry.ts              shared OpenAPIRegistry + ApiKeyAuth / BearerAuth schemes
+  → docs/openapi/modules.ts               imports every <m>.openapi.ts
+  → docs/openapi/document.ts              OpenApiGeneratorV3 → OpenAPI 3.0.0 (tags from tags.ts, server http://localhost:${PORT}/v1/api)
+  → docs/openapi/openapi.routes.ts        GET /docs/openapi.json + Swagger UI at /docs (document built on first request)
 ```
 
-- `openapi.routes.ts` generates the document **when the module is imported**, which happens on every app start.
-- The router is only **mounted** when `NODE_ENV !== 'production'` and `DOCS_ENABLED === 'true'`.
+- The router is only **mounted** when `NODE_ENV !== 'production'` and `DOCS_ENABLED === 'true'`. The document is generated on the first request to `/docs` and then reused.
 - To view the docs locally, set `DOCS_ENABLED=true` and open `http://localhost:<PORT>/docs`. `/docs` does not require the API key or a token.
+- Security is a single requirement: **both** `x-api-key` and the bearer token.
+
+### Conventions in `<m>.openapi.ts`
+
+- Register the create and update input schemas with `openApiRegistry.register(name, schema)` and use the **returned** schema in `registerPath`. Registering without using the returned schema produces an unused component and an inline schema (the document spec fails on unused components).
+- Response schemas are named in their own files with `.openapi('<M>')`; do not register them again.
+- Error responses: `400: responseRef('ValidationError')` (fund transactions use `'ValidationOrBusinessRuleError'` on create/update), `404: responseRef('NotFound')` on operations with `{id}`, `409: responseRef('Conflict')` only for models with a unique constraint, and `...globalErrorResponses` (401/403/500) on every operation.
+- One entity example and one input example per module, reused by all operations. Entity examples use the JSON form the API returns: decimals as strings, dates as ISO date-time.
 
 ### What to update
 
 | Change | Update |
 |---|---|
-| New module | `<m>.openapi.ts`, import in [`modules.ts`](../src/docs/openapi/modules.ts), tag in [`tags.ts`](../src/docs/openapi/tags.ts) |
+| New module | `<m>.openapi.ts`, response schemas, import in [`modules.ts`](../src/docs/openapi/modules.ts), tag in [`tags.ts`](../src/docs/openapi/tags.ts), `modules` table in `openapi-contract.spec.ts` |
 | New/changed endpoint | `registerPath(...)` in `<m>.openapi.ts` (method, path relative to `/v1/api`, request schemas, responses, examples) |
-| Changed schema | Usually automatic for registered Zod schemas; update hand-written `example` objects |
+| Changed input schema | Automatic for registered Zod schemas; update the input example if needed |
+| New/changed DB field | `<m>.schema.ts` (response) and the entity example — not automatic |
+| New error behavior | `error-response.schema.ts` and/or `responses.ts` |
 
-### Known divergences from runtime
+### Tests that guard the documentation
 
-The current OpenAPI documentation **does not reliably match runtime behavior**:
-- All modules document the same response codes regardless of behavior. For example, 409 is documented for entries and fund transactions, and 404 for update/delete, which the code does not produce (Prisma errors become 500).
-- Errors are documented with `errorResponseSchema` (`{ statusCode, message, error? }`). The runtime returns other shapes (see [Section 12](#12-error-handling)).
-- The 403 response from the API key check is not documented.
+`src/docs/openapi/__tests__/` (see [Section 14](#14-testing)) fails when:
+- a route is not documented, or a documented path has no route;
+- a success status, security requirement or error response deviates from the conventions above;
+- a `$ref` is broken, a component is unused, or an `operationId` is duplicated;
+- a response schema's fields or JSON types differ from the Prisma model;
+- the error bodies produced by the middlewares stop matching the documented schemas;
+- running a documented operation through the real routes, controllers and use cases does not return the documented status, example and schema.
 
-When you change a contract, verify the behavior against the code (or a running instance) rather than trusting the existing OpenAPI files. See [ARCHITECTURE.md §11](ARCHITECTURE.md#11-openapi-documentation).
+Not covered: nullability in response schemas (the Prisma 7 DMMF does not expose it), and error paths other than those in `openapi-errors.spec.ts`. See [ARCHITECTURE.md §11](ARCHITECTURE.md#11-openapi-documentation) for the known limitations.
 
 ---
 
@@ -620,18 +636,20 @@ Current runtime behavior:
 | Invalid params/query/body | `validateRequest` (responds directly, does **not** reach `errorHandler`) | 400 | `{ message: 'Invalid params' \| 'Invalid query' \| 'Invalid body', errors, issues: [{ path, message, code }] }` |
 | `AppError` subclasses | [`errorHandler`](../src/shared/http/middlewares/error-handlers.middleware.ts) (logs with `console.warn`) | `err.statusCode` | `{ message, code }` |
 | `ConflictError` (use case duplicate check, or Prisma `P2002` via `prismaCall`) | `errorHandler` | 409 | `{ message, code: 'CONFLICT' }` |
-| `NotFoundError` (get-by-id only) | `errorHandler` | 404 | `{ message: 'Resource not found', code: 'NOT_FOUND' }` |
+| `NotFoundError` (get-by-id use cases, or Prisma `P2025` via `prismaCall` on update/delete of a missing record) | `errorHandler` | 404 | `{ message: 'Resource not found', code: 'NOT_FOUND' }` |
 | `BadRequestError` (fund-transaction rule) | `errorHandler` | 400 | `{ message, code: 'BAD_REQUEST' }` |
 | Missing `x-api-key` / missing or invalid `Authorization` / token rejected by auth API | `errorHandler` | 401 | `{ message, code: 'UNAUTHORIZED' }` |
 | Wrong `x-api-key` | `errorHandler` | 403 | `{ message: 'Invalid API key', code: 'FORBIDDEN' }` |
-| Prisma errors other than `P2002` (e.g. update/delete of a non-existent id, foreign-key violations) | `errorHandler` (logs with `console.error`) | **500** | `{ message: 'Internal server error' }` |
+| Prisma errors other than `P2002`/`P2025` (e.g. foreign-key violations) | `errorHandler` (logs with `console.error`) | **500** | `{ message: 'Internal server error' }` |
+| Malformed JSON body (`express.json()` parse error) | `errorHandler` (ignores the parser's 400 status) | **500** | `{ message: 'Internal server error' }` |
 | Network failure calling the auth API | `errorHandler` | 500 | `{ message: 'Internal server error' }` |
 | Any other unexpected error | `errorHandler` | 500 | `{ message: 'Internal server error' }` |
 | Unknown route | No custom 404 handler (after API key and auth checks) | Express default 404 | Express default |
 
 Practical consequences today:
-- `PATCH` or `DELETE` on a valid but non-existent CUID returns **500**, not 404.
+- `PATCH` or `DELETE` on a valid but non-existent CUID returns **404** (from `prismaCall`), even though the use cases do not check existence.
 - A body with a non-existent foreign-key id returns **500**, not 400/404/409.
+- A malformed JSON body returns **500**, not 400.
 - Deleting a record still referenced by others (FK `RESTRICT`) returns **500**.
 
 Throw `AppError` subclasses from use cases; controllers do not catch errors. `controllerAdapter` forwards them with `next(err)`.
@@ -671,7 +689,7 @@ Middleware order in [`src/app.ts`](../src/app.ts):
 
 ## 14. Testing
 
-Tests use Vitest with Supertest, `globals: true`, `clearMocks: true`. Setup files are [`src/config/zod-openapi.ts`](../src/config/zod-openapi.ts) and [`src/test/setup.ts`](../src/test/setup.ts). Spec files live in `__tests__/` inside each module: 39 use case specs and 9 route specs.
+Tests use Vitest with Supertest, `globals: true`, `clearMocks: true`. Setup files are [`src/config/zod-openapi.ts`](../src/config/zod-openapi.ts) and [`src/test/setup.ts`](../src/test/setup.ts). Spec files live in `__tests__/` folders: 39 use case specs and 9 route specs inside the modules, one `prismaCall` spec in `src/shared/database/prisma/__tests__/` and three OpenAPI specs in `src/docs/openapi/__tests__/`.
 
 ### Use case tests
 
@@ -710,20 +728,33 @@ Location: `__tests__/<m>.routes.spec.ts`.
 
 Reference: [financial-fund-transaction.routes.spec.ts](../src/modules/financial/financial-fund-transaction/__tests__/financial-fund-transaction.routes.spec.ts).
 
+### `prismaCall` test
+
+[`prisma-call.spec.ts`](../src/shared/database/prisma/__tests__/prisma-call.spec.ts) builds `Prisma.PrismaClientKnownRequestError` instances and checks the P2002 → `ConflictError` and P2025 → `NotFoundError` translations, and that other errors are rethrown unchanged.
+
+### OpenAPI tests
+
+Location: [`src/docs/openapi/__tests__/`](../src/docs/openapi/__tests__). These specs import `./test-env` first, which sets the variables required by `config/env.ts`.
+
+| Spec | Checks |
+|---|---|
+| `openapi-document.spec.ts` | Documented operations equal the Express routes mounted by `routes.ts` (read from the router stack); success status per method; security; shared error responses; `$ref` integrity, unused components, unique `operationId`s, path params, tags; response schema fields and JSON types against `Prisma.dmmf`. |
+| `openapi-errors.spec.ts` | Bodies from the real `validateRequest`, `apiKeyMiddleware` and `errorHandler` parse with the documented error schemas. |
+| `openapi-contract.spec.ts` | Each documented operation runs through the real routes, validation, controllers and use cases. Repository tokens are registered in the tsyringe container with mocks that return a Prisma-like record (`Prisma.Decimal`, `Date`) built from the documented entity example. The response must have the documented success status, equal the documented example and parse with the response schema. The spec has an explicit `modules` table that must include every module. |
+
 ### Notes
 
 - Tests import Zod schemas that use `@prisma/client` enums, so `prisma generate` must have run.
-- [`vitest.config.ts`](../vitest.config.ts) defines aliases for `@modules`, `@services` and `@shared` only. Code imported by a test cannot use `@config/*` or `@docs/*` without failing to resolve.
+- [`vitest.config.ts`](../vitest.config.ts) defines aliases for `@modules`, `@services`, `@shared`, `@config` and `@docs`.
 
 ### Layers without tests
 
-- Controllers and `controllerAdapter`.
-- Repositories, `prismaCall`, Prisma, database and migrations.
-- Global middlewares: request container, API key, auth, error handler.
+- `controllerAdapter` error paths, and controllers beyond the success paths run by the OpenAPI contract spec.
+- Repositories, Prisma, database and migrations.
+- Global middlewares: request container and auth (API key and error handler are run by `openapi-errors.spec.ts`).
 - `AuthService` and the external auth API.
-- DI container registration and `routes.ts` mounting.
+- DI container registration.
 - App end-to-end (`app.ts`, `handler.ts`).
-- OpenAPI registration and document generation.
 
 ---
 
@@ -741,9 +772,9 @@ A workflow using only the tools in this repository:
 6. **Run the full suite:** `npm run test:run`.
 7. **Review the diff:** `git diff`. Check for leftover debug output and for unintended changes to central files.
 8. **Contract changes** (endpoint, schema, status code):
-   - update `<m>.openapi.ts`;
-   - run with `DOCS_ENABLED=true` and check `/docs` or `/docs/openapi.json`;
-   - verify the documented responses against what the code actually returns.
+   - update `<m>.openapi.ts` and, for field changes, `<m>.schema.ts`;
+   - run the OpenAPI specs: `npm run test:run -- src/docs`;
+   - optionally run with `DOCS_ENABLED=true` and check `/docs` or `/docs/openapi.json`.
 9. **Schema changes:** if `schema.prisma` changed, include the generated migration (see [Section 16](#16-adding-a-new-database-field)).
 
 Pushing to `develop` triggers a deploy to the `dev` stage; pushing to `main` deploys to `prod`. Both run only after the `validate` job (lint, type check, tests) succeeds.
@@ -769,14 +800,14 @@ Pushing to `develop` triggers a deploy to the `dev` stage; pushing to `main` dep
 4. **Zod schemas:**
    - Add the field to `create-<m>.schema.ts` and `update-<m>.schema.ts` (optional in update), mirroring the column constraints.
    - If it should be sortable, add it to the `orderBy` enum in `list-<m>-query.schema.ts`.
-   - The response schema updates automatically because it extends the create schema.
+   - Add the field to the response schema `<m>.schema.ts` with its JSON type (`decimalString` for `Decimal`, `dateTimeString` for `DateTime`, `.nullable()` if optional). It is **not** derived from the create schema; `openapi-document.spec.ts` fails until it matches the Prisma model.
 5. **DTOs:** no change needed; they are `z.infer` of the schemas.
 6. **Repository:**
    - `create`/`update` pass `data` through, so the new field flows automatically.
    - Add it to the `filters` destructuring in `findMany` only if a use case needs to filter by it.
    - If the field is unique, add a finder (single column) and use it from the use cases.
 7. **Use cases:** change only if the field takes part in normalization, uniqueness or another rule.
-8. **OpenAPI:** update the `example` objects in `<m>.openapi.ts`.
+8. **OpenAPI:** update the entity example and input example in `<m>.openapi.ts`. `openapi-contract.spec.ts` fails if the entity example does not match what the API returns.
 9. **Tests:** add route validation cases for the new field and adjust use case specs if logic changed.
 
 How migrations reach deployed environments is not defined in the repository. CI runs `prisma generate` only, and `npm run prisma:migrate:prod` must be run separately.
@@ -809,7 +840,7 @@ When adding a required variable, check all four places.
 - [ ] Behavior implemented in the correct layer (route → validation → controller → use case → repository).
 - [ ] Zod schemas updated, and DTOs still correct (`z.infer`).
 - [ ] New module or route registered where needed: `shared/container/index.ts`, `routes.ts` (check mount order), `docs/openapi/modules.ts`, `docs/openapi/tags.ts`.
-- [ ] `<m>.openapi.ts` updated for contract changes, with documented responses checked against actual behavior.
+- [ ] `<m>.openapi.ts` (and `<m>.schema.ts` for field changes) updated for contract changes; the OpenAPI specs in `src/docs/openapi/__tests__/` pass.
 - [ ] Prisma: `schema.prisma` changes come with a committed migration; `npm run prisma:generate` was run.
 - [ ] New env vars added to `env.ts`, `.env.example`, `serverless.yml` and the CI deploy jobs.
 - [ ] Route spec and use case specs added or updated.
@@ -825,9 +856,9 @@ When adding a required variable, check all four places.
 
 1. **Forgetting a central registration.**
    - A module needs entries in four files: `shared/container/index.ts`, `routes.ts`, `docs/openapi/modules.ts`, `docs/openapi/tags.ts`.
-   - No test checks these, because route specs mount routers directly and mock `controllerAdapter`.
+   - `openapi-document.spec.ts` fails if `routes.ts`, `modules.ts` and `tags.ts` are out of sync with each other. No test checks `shared/container/index.ts`: the contract spec registers its own repository mocks.
 2. **Route mount order.** A router mounted under a prefix of another path captures it through `/:id` (see `/financial/funds/transactions` vs `/financial/funds` in `routes.ts`).
-3. **Assuming OpenAPI reflects runtime.** OpenAPI is hand-written per module and currently diverges (identical response codes everywhere, different error shapes, undocumented 403).
+3. **Assuming OpenAPI is derived from the code.** Paths, examples and response schemas are hand-written. The OpenAPI specs catch most drift, but not response nullability, and they assume the five CRUD operations per module.
 4. **Assuming the request container gives request-scoped dependencies.** It does not; nothing is registered with a scoped lifecycle.
 5. **Thinking `exists()` must be used.** It is in every repository contract but unused.
 6. **Copying an exception from a reference module:**
@@ -838,14 +869,14 @@ When adding a required variable, check all four places.
    - the `console.log` in `FinancialFundTransactionController.list`;
    - get-by-id return types with `| null`.
 7. **`:id` vs foreign keys.** Path `:id` is CUID-validated; body foreign keys are only `z.string()`. A non-existent foreign key reaches the database and returns 500.
-8. **Expecting 404 on update/delete.** Missing records on update/delete return 500 (Prisma error not translated).
+8. **Expecting use cases to detect missing records on update/delete.** They do not check existence; the 404 comes from `prismaCall` translating Prisma `P2025`. A use case that needs the record before writing must fetch it itself.
 9. **Prisma `undefined` filters.** Passing `undefined` in a `findMany` filter removes that condition instead of matching null.
 10. **Skipping `prisma generate`.** Schemas import Prisma enums; type check and tests fail without a generated client.
-11. **Using `@config` or `@docs` in code covered by tests.** Vitest does not alias them.
-12. **Using `npm run test` in a script expecting it to exit.** Locally it starts watch mode; use `npm run test:run`.
-13. **No local auth bypass.** Every request, including `/health`, needs a valid API key **and** a token accepted by `AUTH_API_URL`.
-14. **Pushing to `develop` or `main` deploys.** The workflow deploys on push to those branches after validation.
-15. **New env vars missing in deployment.** See the `AUTH_API_URL` example in [Section 17](#17-adding-a-new-environment-variable).
+11. **Using `npm run test` in a script expecting it to exit.** Locally it starts watch mode; use `npm run test:run`.
+12. **No local auth bypass.** Every request, including `/health`, needs a valid API key **and** a token accepted by `AUTH_API_URL`.
+13. **Pushing to `develop` or `main` deploys.** The workflow deploys on push to those branches after validation.
+14. **New env vars missing in deployment.** See the `AUTH_API_URL` example in [Section 17](#17-adding-a-new-environment-variable).
+15. **Ignoring the value returned by `openApiRegistry.register()`.** Passing the original schema to `registerPath` inlines it and leaves an unused component; `openapi-document.spec.ts` fails on unused components.
 
 ---
 
@@ -872,6 +903,7 @@ Modules never import other modules.
 2. `src/routes.ts` (mount under `/v1/api/...`, check order)
 3. `src/docs/openapi/modules.ts` (import `<m>.openapi`)
 4. `src/docs/openapi/tags.ts` (tag)
+5. `src/docs/openapi/__tests__/openapi-contract.spec.ts` (`modules` table)
 
 **Most used commands**
 
@@ -917,7 +949,7 @@ npm run prisma:migrate:dev -- --name <migration_name>
 - [ ] type check ✓
 - [ ] tests ✓
 - [ ] registrations ✓
-- [ ] OpenAPI checked against runtime ✓
+- [ ] OpenAPI specs ✓
 - [ ] migration committed ✓
 - [ ] env vars wired ✓
 - [ ] no debug code ✓
