@@ -2,4 +2,4 @@ import { paginatedResponseSchema } from '@shared/schemas/paginated-response.sche
 import { ledgerSchema } from './ledger.schema';
 
 export const listLedgerResponseSchema =
-  paginatedResponseSchema(ledgerSchema);
+  paginatedResponseSchema(ledgerSchema).openapi('ListLedgerResponse');

@@ -1,6 +1,6 @@
 import { openApiRegistry } from '@docs/openapi/registry';
+import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
-import { errorResponseSchema } from '@shared/schemas/error-response.schema';
 import {
   createFinancialCurrencySchema,
   updateFinancialCurrencySchema,
@@ -9,30 +9,29 @@ import {
   listFinancialCurrencyResponseSchema,
 } from './schemas';
 
-openApiRegistry.register(
-  'FinancialCurrency',
-  financialCurrencySchema
-);
-
-openApiRegistry.register(
+const createFinancialCurrencyInput = openApiRegistry.register(
   'CreateFinancialCurrencyInput',
   createFinancialCurrencySchema
 );
 
-openApiRegistry.register(
+// minProperties documents the "at least one field" refine rule
+const updateFinancialCurrencyInput = openApiRegistry.register(
   'UpdateFinancialCurrencyInput',
-  updateFinancialCurrencySchema
+  updateFinancialCurrencySchema.openapi({ minProperties: 1 })
 );
 
-openApiRegistry.register(
-  'ListFinancialCurrencyQuery',
-  listFinancialCurrencyQuerySchema
-);
+const financialCurrencyInputExample = {
+  name   : 'EUROPEAN EURO',
+  symbol : 'EUR',
+};
 
-openApiRegistry.register(
-  'ListFinancialCurrencyResponse',
-  listFinancialCurrencyResponseSchema
-);
+const financialCurrencyExample = {
+  id        : 'cm1234567890abcdefghijkl',
+  name      : 'EUROPEAN EURO',
+  symbol    : 'EUR',
+  createdAt : '2026-01-01T00:00:00.000Z',
+  updatedAt : '2026-01-01T00:00:00.000Z',
+};
 
 openApiRegistry.registerPath({
   method      : 'get',
@@ -49,37 +48,12 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : listFinancialCurrencyResponseSchema,
-          example : {
-            'items': [
-              {
-                'id'        : 'cm1234567890abcdefghijkl',
-                'name'      : 'EUROPEAN EURO',
-                'symbol'    : 'EUR',
-                'createdAt' : '2026-01-01T00:00:00.000Z',
-                'updatedAt' : '2026-01-01T00:00:00.000Z'
-              }
-            ],
-            'total': 1
-          },
+          example : { items: [financialCurrencyExample], total: 1 },
         },
       },
     },
-    400: {
-      description : 'Invalid query parameters',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },    
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
   },
 });
 
@@ -94,11 +68,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : createFinancialCurrencySchema,
-          example : {
-            'name'   : 'EUROPEAN EURO',
-            'symbol' : 'EUR'
-          },
+          schema  : createFinancialCurrencyInput,
+          example : financialCurrencyInputExample,
         },
       },
     },
@@ -109,40 +80,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialCurrencySchema,
-          example : {
-            'id'        : 'cm1234567890abcdefghijkl',
-            'name'      : 'EUROPEAN EURO',
-            'symbol'    : 'EUR',
-            'createdAt' : '2026-01-01T00:00:00.000Z',
-            'updatedAt' : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialCurrencyExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request body',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    409: {
-      description : 'FinancialCurrency already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
   },
 });
 
@@ -161,40 +105,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialCurrencySchema,
-          example : {
-            'id'        : 'cm1234567890abcdefghijkl',
-            'name'      : 'EUROPEAN EURO',
-            'symbol'    : 'EUR',
-            'createdAt' : '2026-01-01T00:00:00.000Z',
-            'updatedAt' : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialCurrencyExample,
         },
       },
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialCurrency not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
 
@@ -210,11 +127,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : updateFinancialCurrencySchema,
-          example : {
-            'name'   : 'EUROPEAN EURO',
-            'symbol' : 'EUR'
-          },
+          schema  : updateFinancialCurrencyInput,
+          example : financialCurrencyInputExample,
         },
       },
     },
@@ -225,48 +139,14 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialCurrencySchema,
-          example : {
-            'id'        : 'cm1234567890abcdefghijkl',
-            'name'      : 'EUROPEAN EURO',
-            'symbol'    : 'EUR',
-            'createdAt' : '2026-01-01T00:00:00.000Z',
-            'updatedAt' : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialCurrencyExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialCurrency not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    409: {
-      description : 'FinancialCurrency already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
   },
 });
 
@@ -283,29 +163,8 @@ openApiRegistry.registerPath({
     204: {
       description: 'FinancialCurrency deleted successfully',
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialCurrency not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });

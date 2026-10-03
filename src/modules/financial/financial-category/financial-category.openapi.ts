@@ -1,6 +1,6 @@
 import { openApiRegistry } from '@docs/openapi/registry';
+import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
-import { errorResponseSchema } from '@shared/schemas/error-response.schema';
 import {
   createFinancialCategorySchema,
   updateFinancialCategorySchema,
@@ -9,30 +9,35 @@ import {
   listFinancialCategoryResponseSchema,
 } from './schemas';
 
-openApiRegistry.register(
-  'FinancialCategory',
-  financialCategorySchema
-);
-
-openApiRegistry.register(
+const createFinancialCategoryInput = openApiRegistry.register(
   'CreateFinancialCategoryInput',
   createFinancialCategorySchema
 );
 
-openApiRegistry.register(
+// minProperties documents the "at least one field" refine rule
+const updateFinancialCategoryInput = openApiRegistry.register(
   'UpdateFinancialCategoryInput',
-  updateFinancialCategorySchema
+  updateFinancialCategorySchema.openapi({ minProperties: 1 })
 );
 
-openApiRegistry.register(
-  'ListFinancialCategoryQuery',
-  listFinancialCategoryQuerySchema
-);
+const financialCategoryInputExample = {
+  name             : 'SUPERMARKET',
+  type             : 'EXPENSE',
+  balance          : 0,
+  ledgerId         : 'cm1234567890abcdefghijkl',
+  parentCategoryId : 'cm1234567890abcdefghijkl',
+};
 
-openApiRegistry.register(
-  'ListFinancialCategoryResponse',
-  listFinancialCategoryResponseSchema
-);
+const financialCategoryExample = {
+  id               : 'cm1234567890abcdefghijkl',
+  ledgerId         : 'cm1234567890abcdefghijkl',
+  parentCategoryId : 'cm1234567890abcdefghijkl',
+  name             : 'SUPERMARKET',
+  type             : 'EXPENSE',
+  balance          : '0',
+  createdAt        : '2026-01-01T00:00:00.000Z',
+  updatedAt        : '2026-01-01T00:00:00.000Z',
+};
 
 openApiRegistry.registerPath({
   method      : 'get',
@@ -49,40 +54,12 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : listFinancialCategoryResponseSchema,
-          example : {
-            'items': [
-              {
-                'id'               : 'cm1234567890abcdefghijkl',
-                'name'             : 'SUPERMARKET',
-                'type'             : 'EXPENSE',
-                'balance'          : 0,
-                'ledgerId'         : 'cm1234567890abcdefghijkl',
-                'parentCategoryId' : 'cm1234567890abcdefghijkl',
-                'createdAt'        : '2026-01-01T00:00:00.000Z',
-                'updatedAt'        : '2026-01-01T00:00:00.000Z'
-              }
-            ],
-            'total': 1
-          },
+          example : { items: [financialCategoryExample], total: 1 },
         },
       },
     },
-    400: {
-      description : 'Invalid query parameters',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },    
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
   },
 });
 
@@ -97,14 +74,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : createFinancialCategorySchema,
-          example : {
-            'name'             : 'SUPERMARKET',
-            'type'             : 'EXPENSE',
-            'balance'          : 0,
-            'ledgerId'         : 'cm1234567890abcdefghijkl',
-            'parentCategoryId' : 'cm1234567890abcdefghijkl'
-          },
+          schema  : createFinancialCategoryInput,
+          example : financialCategoryInputExample,
         },
       },
     },
@@ -115,43 +86,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialCategorySchema,
-          example : {
-            'id'               : 'cm1234567890abcdefghijkl',
-            'name'             : 'SUPERMARKET',
-            'type'             : 'EXPENSE',
-            'balance'          : 0,
-            'ledgerId'         : 'cm1234567890abcdefghijkl',
-            'parentCategoryId' : 'cm1234567890abcdefghijkl',
-            'createdAt'        : '2026-01-01T00:00:00.000Z',
-            'updatedAt'        : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialCategoryExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request body',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    409: {
-      description : 'FinancialCategory already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
   },
 });
 
@@ -170,43 +111,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialCategorySchema,
-          example : {
-            'id'               : 'cm1234567890abcdefghijkl',
-            'name'             : 'SUPERMARKET',
-            'type'             : 'EXPENSE',
-            'balance'          : 0,
-            'ledgerId'         : 'cm1234567890abcdefghijkl',
-            'parentCategoryId' : 'cm1234567890abcdefghijkl',
-            'createdAt'        : '2026-01-01T00:00:00.000Z',
-            'updatedAt'        : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialCategoryExample,
         },
       },
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialCategory not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
 
@@ -222,14 +133,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : updateFinancialCategorySchema,
-          example : {
-            'name'             : 'SUPERMARKET',
-            'type'             : 'EXPENSE',
-            'balance'          : 0,
-            'ledgerId'         : 'cm1234567890abcdefghijkl',
-            'parentCategoryId' : 'cm1234567890abcdefghijkl'
-          },
+          schema  : updateFinancialCategoryInput,
+          example : financialCategoryInputExample,
         },
       },
     },
@@ -240,51 +145,14 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialCategorySchema,
-          example : {
-            'id'               : 'cm1234567890abcdefghijkl',
-            'name'             : 'SUPERMARKET',
-            'type'             : 'EXPENSE',
-            'balance'          : 0,
-            'ledgerId'         : 'cm1234567890abcdefghijkl',
-            'parentCategoryId' : 'cm1234567890abcdefghijkl',
-            'createdAt'        : '2026-01-01T00:00:00.000Z',
-            'updatedAt'        : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialCategoryExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialCategory not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    409: {
-      description : 'FinancialCategory already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
   },
 });
 
@@ -301,29 +169,8 @@ openApiRegistry.registerPath({
     204: {
       description: 'FinancialCategory deleted successfully',
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialCategory not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });

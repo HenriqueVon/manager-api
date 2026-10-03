@@ -9,17 +9,11 @@ import {
 } from '@shared/http/middlewares/';
 import routes from './routes';
 import '@shared/container';
-import { env } from './config/env';
-import openApiRoutes from '@docs/openapi/openapi.routes';
 
 export const app = express();
 
 app.use(express.json());
-app.use(requestContainerMiddleware); 
-
-if (env.nodeEnv !== 'production' && env.docsEnabled === 'true') {
-  app.use('/docs', openApiRoutes);
-}
+app.use(requestContainerMiddleware);
 
 app.use(apiKeyMiddleware); // Global API key enforcement – all endpoints are protected
 app.use(authMiddleware); // Global authentication enforcement – all endpoints are protected

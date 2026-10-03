@@ -1,8 +1,15 @@
 import { z } from 'zod';
-import { createFinancialCategorySchema } from './create-financial-category.schema';
+import { FinancialCategoryType } from '@prisma/client';
+import { decimalString, dateTimeString } from '@shared/schemas/output.schema';
 
-export const financialCategorySchema = createFinancialCategorySchema.extend({
-  id        : z.string(),
-  createdAt : z.string().datetime(),
-  updatedAt : z.string().datetime(),
-});
+// Response shape: the Prisma `FinancialCategory` model as serialized to JSON
+export const financialCategorySchema = z.object({
+  id               : z.string(),
+  ledgerId         : z.string(),
+  parentCategoryId : z.string().nullable(),
+  name             : z.string(),
+  type             : z.enum(FinancialCategoryType),
+  balance          : decimalString,
+  createdAt        : dateTimeString,
+  updatedAt        : dateTimeString,
+}).openapi('FinancialCategory');

@@ -2,4 +2,4 @@ import { paginatedResponseSchema } from '@shared/schemas/paginated-response.sche
 import { financialFundTransactionSchema } from './financial-fund-transaction.schema';
 
 export const listFinancialFundTransactionResponseSchema =
-  paginatedResponseSchema(financialFundTransactionSchema);
+  paginatedResponseSchema(financialFundTransactionSchema).openapi('ListFinancialFundTransactionResponse');

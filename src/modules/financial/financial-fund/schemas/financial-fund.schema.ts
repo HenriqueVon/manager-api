@@ -1,8 +1,13 @@
 import { z } from 'zod';
-import { createFinancialFundSchema } from './create-financial-fund.schema';
+import { decimalString, dateTimeString } from '@shared/schemas/output.schema';
 
-export const financialFundSchema = createFinancialFundSchema.extend({
-  id        : z.string(),
-  createdAt : z.string().datetime(),
-  updatedAt : z.string().datetime(),
-});
+// Response shape: the Prisma `FinancialFund` model as serialized to JSON
+export const financialFundSchema = z.object({
+  id                  : z.string(),
+  name                : z.string(),
+  balance             : decimalString.nullable(),
+  financialCurrencyId : z.string(),
+  ledgerId            : z.string(),
+  createdAt           : dateTimeString,
+  updatedAt           : dateTimeString,
+}).openapi('FinancialFund');

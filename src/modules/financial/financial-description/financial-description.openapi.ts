@@ -1,6 +1,6 @@
 import { openApiRegistry } from '@docs/openapi/registry';
+import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
-import { errorResponseSchema } from '@shared/schemas/error-response.schema';
 import {
   createFinancialDescriptionSchema,
   updateFinancialDescriptionSchema,
@@ -9,30 +9,27 @@ import {
   listFinancialDescriptionResponseSchema,
 } from './schemas';
 
-openApiRegistry.register(
-  'FinancialDescription',
-  financialDescriptionSchema
-);
-
-openApiRegistry.register(
+const createFinancialDescriptionInput = openApiRegistry.register(
   'CreateFinancialDescriptionInput',
   createFinancialDescriptionSchema
 );
 
-openApiRegistry.register(
+// minProperties documents the "at least one field" refine rule
+const updateFinancialDescriptionInput = openApiRegistry.register(
   'UpdateFinancialDescriptionInput',
-  updateFinancialDescriptionSchema
+  updateFinancialDescriptionSchema.openapi({ minProperties: 1 })
 );
 
-openApiRegistry.register(
-  'ListFinancialDescriptionQuery',
-  listFinancialDescriptionQuerySchema
-);
+const financialDescriptionInputExample = {
+  description: 'SUPERMARKET',
+};
 
-openApiRegistry.register(
-  'ListFinancialDescriptionResponse',
-  listFinancialDescriptionResponseSchema
-);
+const financialDescriptionExample = {
+  id          : 'cm1234567890abcdefghijkl',
+  description : 'SUPERMARKET',
+  createdAt   : '2026-01-01T00:00:00.000Z',
+  updatedAt   : '2026-01-01T00:00:00.000Z',
+};
 
 openApiRegistry.registerPath({
   method      : 'get',
@@ -49,36 +46,12 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : listFinancialDescriptionResponseSchema,
-          example : {
-            'items': [
-              {
-                'id'          : 'cm1234567890abcdefghijkl',
-                'description' : 'SUPERMARKET',
-                'createdAt'   : '2026-01-01T00:00:00.000Z',
-                'updatedAt'   : '2026-01-01T00:00:00.000Z'
-              }
-            ],
-            'total': 1
-          },
+          example : { items: [financialDescriptionExample], total: 1 },
         },
       },
     },
-    400: {
-      description : 'Invalid query parameters',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },    
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
   },
 });
 
@@ -93,10 +66,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : createFinancialDescriptionSchema,
-          example : {
-            'description': 'SUPERMARKET'
-          },
+          schema  : createFinancialDescriptionInput,
+          example : financialDescriptionInputExample,
         },
       },
     },
@@ -107,39 +78,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialDescriptionSchema,
-          example : {
-            'id'          : 'cm1234567890abcdefghijkl',
-            'description' : 'SUPERMARKET',
-            'createdAt'   : '2026-01-01T00:00:00.000Z',
-            'updatedAt'   : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialDescriptionExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request body',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    409: {
-      description : 'FinancialDescription already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
   },
 });
 
@@ -158,39 +103,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialDescriptionSchema,
-          example : {
-            'id'          : 'cm1234567890abcdefghijkl',
-            'description' : 'SUPERMARKET',
-            'createdAt'   : '2026-01-01T00:00:00.000Z',
-            'updatedAt'   : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialDescriptionExample,
         },
       },
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialDescription not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
 
@@ -206,10 +125,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : updateFinancialDescriptionSchema,
-          example : {
-            'description': 'SUPERMARKET'
-          },
+          schema  : updateFinancialDescriptionInput,
+          example : financialDescriptionInputExample,
         },
       },
     },
@@ -220,47 +137,14 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialDescriptionSchema,
-          example : {
-            'id'          : 'cm1234567890abcdefghijkl',
-            'description' : 'SUPERMARKET',
-            'createdAt'   : '2026-01-01T00:00:00.000Z',
-            'updatedAt'   : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialDescriptionExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialDescription not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    409: {
-      description : 'FinancialDescription already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
   },
 });
 
@@ -277,29 +161,8 @@ openApiRegistry.registerPath({
     204: {
       description: 'FinancialDescription deleted successfully',
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialDescription not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });

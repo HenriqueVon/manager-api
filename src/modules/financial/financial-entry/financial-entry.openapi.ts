@@ -1,6 +1,6 @@
 import { openApiRegistry } from '@docs/openapi/registry';
+import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
-import { errorResponseSchema } from '@shared/schemas/error-response.schema';
 import {
   createFinancialEntrySchema,
   updateFinancialEntrySchema,
@@ -9,30 +9,47 @@ import {
   listFinancialEntryResponseSchema,
 } from './schemas';
 
-openApiRegistry.register(
-  'FinancialEntry',
-  financialEntrySchema
-);
-
-openApiRegistry.register(
+const createFinancialEntryInput = openApiRegistry.register(
   'CreateFinancialEntryInput',
   createFinancialEntrySchema
 );
 
-openApiRegistry.register(
+// minProperties documents the "at least one field" refine rule
+const updateFinancialEntryInput = openApiRegistry.register(
   'UpdateFinancialEntryInput',
-  updateFinancialEntrySchema
+  updateFinancialEntrySchema.openapi({ minProperties: 1 })
 );
 
-openApiRegistry.register(
-  'ListFinancialEntryQuery',
-  listFinancialEntryQuerySchema
-);
+const financialEntryInputExample = {
+  type                   : 'PAYABLE',
+  dueDate                : '2024-01-01',
+  paymentDate            : '2024-01-01',
+  amount                 : 100,
+  amountPaid             : 0,
+  additionalDescription  : '1/2 playstation 5',
+  isMonthly              : false,
+  ledgerId               : 'cm1234567890abcdefghijkl',
+  financialDescriptionId : 'cm1234567890abcdefghijkl',
+  financialFundId        : 'cm1234567890abcdefghijkl',
+  financialCategoryId    : 'cm1234567890abcdefghijkl',
+};
 
-openApiRegistry.register(
-  'ListFinancialEntryResponse',
-  listFinancialEntryResponseSchema
-);
+const financialEntryExample = {
+  id                     : 'cm1234567890abcdefghijkl',
+  type                   : 'PAYABLE',
+  dueDate                : '2024-01-01T00:00:00.000Z',
+  paymentDate            : '2024-01-01T00:00:00.000Z',
+  amount                 : '100',
+  amountPaid             : '0',
+  additionalDescription  : '1/2 playstation 5',
+  isMonthly              : false,
+  ledgerId               : 'cm1234567890abcdefghijkl',
+  financialDescriptionId : 'cm1234567890abcdefghijkl',
+  financialFundId        : 'cm1234567890abcdefghijkl',
+  financialCategoryId    : 'cm1234567890abcdefghijkl',
+  createdAt              : '2026-01-01T00:00:00.000Z',
+  updatedAt              : '2026-01-01T00:00:00.000Z',
+};
 
 openApiRegistry.registerPath({
   method      : 'get',
@@ -49,46 +66,12 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : listFinancialEntryResponseSchema,
-          example : {
-            'items': [
-              {
-                'id'                     : 'cm1234567890abcdefghijkl',
-                'type'                   : 'PAYABLE',
-                'dueDate'                : '2024-01-01',
-                'paymentDate'            : '2024-01-01',
-                'amount'                 : 100,
-                'amountPaid'             : 0,
-                'additionalDescription'  : '1/2 playstation 5',
-                'isMonthly'              : false,
-                'ledgerId'               : 'cm1234567890abcdefghijkl',
-                'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-                'financialFundId'        : 'cm1234567890abcdefghijkl',
-                'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-                'createdAt'              : '2026-01-01T00:00:00.000Z',
-                'updatedAt'              : '2026-01-01T00:00:00.000Z'
-              }
-            ],
-            'total': 1
-          },
+          example : { items: [financialEntryExample], total: 1 },
         },
       },
     },
-    400: {
-      description : 'Invalid query parameters',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },    
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
   },
 });
 
@@ -103,20 +86,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : createFinancialEntrySchema,
-          example : {
-            'type'                   : 'PAYABLE',
-            'dueDate'                : '2024-01-01',
-            'paymentDate'            : '2024-01-01',
-            'amount'                 : 100,
-            'amountPaid'             : 0,
-            'additionalDescription'  : '1/2 playstation 5',
-            'isMonthly'              : false,
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl'
-          },
+          schema  : createFinancialEntryInput,
+          example : financialEntryInputExample,
         },
       },
     },
@@ -127,49 +98,12 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialEntrySchema,
-          example : {
-            'id'                     : 'cm1234567890abcdefghijkl',
-            'type'                   : 'PAYABLE',
-            'dueDate'                : '2024-01-01',
-            'paymentDate'            : '2024-01-01',
-            'amount'                 : 100,
-            'amountPaid'             : 0,
-            'additionalDescription'  : '1/2 playstation 5',
-            'isMonthly'              : false,
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-            'createdAt'              : '2026-01-01T00:00:00.000Z',
-            'updatedAt'              : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialEntryExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request body',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    409: {
-      description : 'FinancialEntry already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
   },
 });
 
@@ -188,49 +122,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialEntrySchema,
-          example : {
-            'id'                     : 'cm1234567890abcdefghijkl',
-            'type'                   : 'PAYABLE',
-            'dueDate'                : '2024-01-01',
-            'paymentDate'            : '2024-01-01',
-            'amount'                 : 100,
-            'amountPaid'             : 0,
-            'additionalDescription'  : '1/2 playstation 5',
-            'isMonthly'              : false,
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-            'createdAt'              : '2026-01-01T00:00:00.000Z',
-            'updatedAt'              : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialEntryExample,
         },
       },
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialEntry not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
 
@@ -246,20 +144,8 @@ openApiRegistry.registerPath({
       required : true,
       content  : {
         'application/json': {
-          schema  : updateFinancialEntrySchema,
-          example : {
-            'type'                   : 'PAYABLE',
-            'dueDate'                : '2024-01-01',
-            'paymentDate'            : '2024-01-01',
-            'amount'                 : 100,
-            'amountPaid'             : 0,
-            'additionalDescription'  : '1/2 playstation 5',
-            'isMonthly'              : false,
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl'
-          },
+          schema  : updateFinancialEntryInput,
+          example : financialEntryInputExample,
         },
       },
     },
@@ -270,57 +156,13 @@ openApiRegistry.registerPath({
       content     : {
         'application/json': {
           schema  : financialEntrySchema,
-          example : {
-            'id'                     : 'cm1234567890abcdefghijkl',
-            'type'                   : 'PAYABLE',
-            'dueDate'                : '2024-01-01',
-            'paymentDate'            : '2024-01-01',
-            'amount'                 : 100,
-            'amountPaid'             : 0,
-            'additionalDescription'  : '1/2 playstation 5',
-            'isMonthly'              : false,
-            'ledgerId'               : 'cm1234567890abcdefghijkl',
-            'financialDescriptionId' : 'cm1234567890abcdefghijkl',
-            'financialFundId'        : 'cm1234567890abcdefghijkl',
-            'financialCategoryId'    : 'cm1234567890abcdefghijkl',
-            'createdAt'              : '2026-01-01T00:00:00.000Z',
-            'updatedAt'              : '2026-01-01T00:00:00.000Z'
-          },
+          example : financialEntryExample,
         },
       },
     },
-    400: {
-      description : 'Invalid request',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialEntry not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    409: {
-      description : 'FinancialEntry already exists',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
 
@@ -337,29 +179,8 @@ openApiRegistry.registerPath({
     204: {
       description: 'FinancialEntry deleted successfully',
     },
-    400: {
-      description : 'Invalid id',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
-    401: {
-      description : 'Unauthorized',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },       
-    404: {
-      description : 'FinancialEntry not found',
-      content     : {
-        'application/json': {
-          schema: errorResponseSchema,
-        },
-      },
-    },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    ...globalErrorResponses,
   },
 });
