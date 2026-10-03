@@ -31,12 +31,11 @@ export function createOpenApiDocument() {
       },
     ],
 
+    // A single requirement object: both the API key AND the bearer token are required
     security: [
       {
-        [apiKeyAuth.name]: [],
-      },
-      {
-        [bearerAuth.name]: [],
+        [apiKeyAuth.name] : [],
+        [bearerAuth.name] : [],
       },
     ],
   });
