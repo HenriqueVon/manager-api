@@ -163,6 +163,7 @@ openApiRegistry.registerPath({
     },
     400 : responseRef('ValidationError'),
     404 : responseRef('NotFound'),
+    409 : responseRef('Conflict'),
     ...globalErrorResponses,
   },
 });

@@ -37,8 +37,21 @@ describe('prismaCall', () => {
     await expect(promise).rejects.toMatchObject({ statusCode: 404, code: 'NOT_FOUND' });
   });
 
+  it('should translate P2003 (foreign key violation) into ConflictError', async () => {
+    const promise = prismaCall(async () => {
+      throw knownRequestError('P2003', { modelName: 'FinancialEntry' });
+    });
+
+    await expect(promise).rejects.toBeInstanceOf(ConflictError);
+    await expect(promise).rejects.toMatchObject({
+      statusCode : 409,
+      code       : 'CONFLICT',
+      message    : 'Operation conflicts with related records',
+    });
+  });
+
   it('should rethrow other Prisma known errors unchanged', async () => {
-    const error = knownRequestError('P2003');
+    const error = knownRequestError('P2000');
 
     await expect(prismaCall(async () => {
       throw error;

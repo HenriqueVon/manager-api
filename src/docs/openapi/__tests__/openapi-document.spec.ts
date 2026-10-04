@@ -68,6 +68,35 @@ describe('OpenAPI document', () => {
       });
     });
 
+    it('should document 409 on every operation that can violate a foreign key', () => {
+      // A relation field `<name>` backed by a scalar `<name>Id` means the model holds a foreign key
+      const holders = new Set<string>();
+      const referenced = new Set<string>();
+
+      for (const model of Prisma.dmmf.datamodel.models) {
+        const scalars = new Set(model.fields.filter((field) => field.kind === 'scalar').map((field) => field.name));
+
+        for (const relation of model.fields.filter((field) => field.kind === 'object')) {
+          if (scalars.has(`${relation.name}Id`)) {
+            holders.add(model.name);
+            referenced.add(relation.type);
+          }
+        }
+      }
+
+      forEachOperation(document, (name, operation, path, method) => {
+        const itemPath = path.endsWith('{id}') ? path : `${path}/{id}`;
+        const model = document.paths[itemPath].get.responses['200'].content['application/json'].schema.$ref.split('/').pop();
+
+        const writesForeignKeys = (method === 'post' || method === 'patch') && holders.has(model);
+        const deletesReferencedRecord = method === 'delete' && referenced.has(model);
+
+        if (writesForeignKeys || deletesReferencedRecord) {
+          expect(operation.responses['409'], `${name} (${model})`).toEqual({ $ref: '#/components/responses/Conflict' });
+        }
+      });
+    });
+
     it('should reference shared response components for every error response', () => {
       forEachOperation(document, (name, operation) => {
         for (const [status, response] of Object.entries<any>(operation.responses)) {

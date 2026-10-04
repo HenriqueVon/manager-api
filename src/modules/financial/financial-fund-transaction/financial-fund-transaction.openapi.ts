@@ -98,7 +98,8 @@ openApiRegistry.registerPath({
         },
       },
     },
-    400: responseRef('ValidationOrBusinessRuleError'),
+    400 : responseRef('ValidationOrBusinessRuleError'),
+    409 : responseRef('Conflict'),
     ...globalErrorResponses,
   },
 });
@@ -158,6 +159,7 @@ openApiRegistry.registerPath({
     },
     400 : responseRef('ValidationOrBusinessRuleError'),
     404 : responseRef('NotFound'),
+    409 : responseRef('Conflict'),
     ...globalErrorResponses,
   },
 });
