@@ -49,7 +49,7 @@ A `Ledger` is the parent record for bank accounts, funds, categories, entries an
 
 - [`serverless.yml`](../serverless.yml) deploys a **single Lambda function** (`api`, Node 24, `sa-east-1`) bundled with esbuild. It receives every request through HTTP API routes `/` and `/{proxy+}`.
 - [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) runs a `validate` job (`npm ci`, `prisma generate`, lint, `tsc --noEmit`, tests) on pushes to `develop`/`main`, on pull requests targeting them and on manual dispatch. On pushes it then deploys `develop` → `dev` stage and `main` → `prod` stage. The deploy jobs are guarded by `github.ref`, so pull requests only run `validate`.
-- The workflow does not run Prisma migrations.
+- Each stage has a `migrate-<stage>` job (`migrate-dev`, `migrate-prod`) that runs `npm run prisma:migrate:prod` (`prisma migrate deploy`) with the environment's `DATABASE_URL` secret. `deploy-<stage>` has `needs: [validate, migrate-<stage>]`, so migrations are applied before `serverless deploy` and the deploy does not run if a migration fails. Each migrate job uses the same GitHub environment as its deploy job (`prd` requires reviewers) and a `concurrency` group per stage.
 
 ### General organization
 

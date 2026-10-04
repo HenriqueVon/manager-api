@@ -123,7 +123,7 @@ All commands below exist in [`package.json`](../package.json).
 | Run specific tests | `npm run test:run -- <path-or-pattern>` | Vitest accepts file filters, e.g. `npm run test:run -- src/modules/ledger`. Use `-t "<test name>"` to filter by name. |
 | Generate Prisma client | `npm run prisma:generate` | After installing, and after every `schema.prisma` change. |
 | Create/apply dev migration | `npm run prisma:migrate:dev` | After changing `schema.prisma`. Pass a name with `-- --name <name>` (example in [`.github/pull_request_template.md`](../.github/pull_request_template.md)). |
-| Apply migrations (deploy mode) | `npm run prisma:migrate:prod` | Runs `prisma migrate deploy` against `DATABASE_URL`. **CI does not run this.** |
+| Apply migrations (deploy mode) | `npm run prisma:migrate:prod` | Runs `prisma migrate deploy` against `DATABASE_URL`. CI runs it in the `migrate-dev` / `migrate-prod` jobs before each deploy. |
 | Prisma Studio | `npm run prisma:studio` | Inspect data in the database. |
 | Deploy | `npm run deploy:dev` / `npm run deploy:prod` | Manual Serverless deploy. Requires AWS credentials and env vars. Normally done by CI. |
 | Tail Lambda logs | `npm run logs:dev` / `npm run logs:prod` | Follow logs of the `api` function. |
@@ -816,7 +816,7 @@ Pull requests to `develop` or `main` run the `validate` job (lint, type check, t
 8. **OpenAPI:** update the entity example and input example in `<m>.openapi.ts`. `openapi-contract.spec.ts` fails if the entity example does not match what the API returns.
 9. **Tests:** add route validation cases for the new field and adjust use case specs if logic changed.
 
-How migrations reach deployed environments is not defined in the repository. CI runs `prisma generate` only, and `npm run prisma:migrate:prod` must be run separately.
+Migrations reach deployed environments through the `migrate-dev` and `migrate-prod` jobs in [`deploy.yml`](../.github/workflows/deploy.yml), which run before `serverless deploy`. For a short time the previous code runs against the new schema, so a migration must stay compatible with the previous code: add before removing, and do not rename or drop a column in the same change that stops using it. If a migration fails midway, the deploy does not run; fix the database state (`prisma migrate resolve`) and re-run the workflow.
 
 ---
 
