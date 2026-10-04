@@ -252,7 +252,7 @@ Depends on step 2.
 
 - Register the create and update input schemas with `openApiRegistry.register(...)` and use the **returned** schemas in `registerPath`. Add `.openapi({ minProperties: 1 })` to the update schema.
 - Define one entity example (as the API returns it: decimals as strings, dates as date-time) and one input example.
-- Register five paths with `openApiRegistry.registerPath(...)`, using the module's tag name. Error responses use `responseRef(...)` and `...globalErrorResponses` from [`docs/openapi/responses.ts`](../src/docs/openapi/responses.ts). Add `409: responseRef('Conflict')` only if the model has a unique constraint.
+- Register five paths with `openApiRegistry.registerPath(...)`, using the module's tag name. Error responses use `responseRef(...)` and `...globalErrorResponses` from [`docs/openapi/responses.ts`](../src/docs/openapi/responses.ts). Add `409: responseRef('Conflict')` on create/update if the model has a unique constraint or foreign keys, and on delete if other models reference it.
 
 Reference: [financial-payment-method.openapi.ts](../src/modules/financial/financial-payment-method/financial-payment-method.openapi.ts). Details: [Section 11](#11-openapi--swagger).
 
@@ -506,7 +506,7 @@ import { prisma } from '@services/database/prisma/prisma.client';
 | `findMany(filters, params)` | `findMany` + `count` | no |
 | `exists(id)` | `count({ where: { id } }) > 0` | no |
 
-[`prismaCall`](../src/shared/database/prisma/prisma-call.ts) converts Prisma `P2002` (unique violation) into `ConflictError`, `P2025` (record to update or delete not found) into `NotFoundError`, and rethrows everything else unchanged. This is where update and delete get their 404. No repository uses `$transaction` or raw SQL.
+[`prismaCall`](../src/shared/database/prisma/prisma-call.ts) converts Prisma `P2002` (unique violation) and `P2003` (foreign-key violation) into `ConflictError`, `P2025` (record to update or delete not found) into `NotFoundError`, and rethrows everything else unchanged. This is where update and delete get their 404, and where foreign-key and ledger-mismatch errors get their 409. No repository uses `$transaction` or raw SQL.
 
 ### Pagination, `findMany`, count (invariant)
 
@@ -602,7 +602,7 @@ shared/schemas/error-response.schema.ts  error bodies produced by the runtime
 
 - Register the create and update input schemas with `openApiRegistry.register(name, schema)` and use the **returned** schema in `registerPath`. Registering without using the returned schema produces an unused component and an inline schema (the document spec fails on unused components).
 - Response schemas are named in their own files with `.openapi('<M>')`; do not register them again.
-- Error responses: `400: responseRef('ValidationError')` (fund transactions use `'ValidationOrBusinessRuleError'` on create/update), `404: responseRef('NotFound')` on operations with `{id}`, `409: responseRef('Conflict')` only for models with a unique constraint, and `...globalErrorResponses` (401/403/500) on every operation.
+- Error responses: `400: responseRef('ValidationError')` (fund transactions use `'ValidationOrBusinessRuleError'` on create/update), `404: responseRef('NotFound')` on operations with `{id}`, `409: responseRef('Conflict')` on create/update of models with a unique constraint or foreign keys and on delete of models referenced by others (`openapi-document.spec.ts` enforces the foreign-key cases), and `...globalErrorResponses` (401/403/500) on every operation.
 - One entity example and one input example per module, reused by all operations. Entity examples use the JSON form the API returns: decimals as strings, dates as ISO date-time.
 
 ### What to update
@@ -637,12 +637,12 @@ Current runtime behavior:
 |---|---|---|---|
 | Invalid params/query/body | `validateRequest` (responds directly, does **not** reach `errorHandler`) | 400 | `{ message: 'Invalid params' \| 'Invalid query' \| 'Invalid body', errors, issues: [{ path, message, code }] }` |
 | `AppError` subclasses | [`errorHandler`](../src/shared/http/middlewares/error-handlers.middleware.ts) (logs with `console.warn`) | `err.statusCode` | `{ message, code }` |
-| `ConflictError` (use case duplicate check, or Prisma `P2002` via `prismaCall`) | `errorHandler` | 409 | `{ message, code: 'CONFLICT' }` |
+| `ConflictError` (use case duplicate check, or Prisma `P2002`/`P2003` via `prismaCall`) | `errorHandler` | 409 | `{ message, code: 'CONFLICT' }` |
 | `NotFoundError` (get-by-id use cases, or Prisma `P2025` via `prismaCall` on update/delete of a missing record) | `errorHandler` | 404 | `{ message: 'Resource not found', code: 'NOT_FOUND' }` |
 | `BadRequestError` (fund-transaction rule) | `errorHandler` | 400 | `{ message, code: 'BAD_REQUEST' }` |
 | Missing `x-api-key` / missing or invalid `Authorization` / token rejected by auth API | `errorHandler` | 401 | `{ message, code: 'UNAUTHORIZED' }` |
 | Wrong `x-api-key` | `errorHandler` | 403 | `{ message: 'Invalid API key', code: 'FORBIDDEN' }` |
-| Prisma errors other than `P2002`/`P2025` (e.g. foreign-key violations) | `errorHandler` (logs with `console.error`) | **500** | `{ message: 'Internal server error' }` |
+| Prisma errors other than `P2002`/`P2003`/`P2025` | `errorHandler` (logs with `console.error`) | **500** | `{ message: 'Internal server error' }` |
 | Malformed JSON body (`express.json()` parse error) | `errorHandler` (ignores the parser's 400 status) | **500** | `{ message: 'Internal server error' }` |
 | Network failure calling the auth API | `errorHandler` | 500 | `{ message: 'Internal server error' }` |
 | Any other unexpected error | `errorHandler` | 500 | `{ message: 'Internal server error' }` |
@@ -650,9 +650,10 @@ Current runtime behavior:
 
 Practical consequences today:
 - `PATCH` or `DELETE` on a valid but non-existent CUID returns **404** (from `prismaCall`), even though the use cases do not check existence.
-- A body with a non-existent foreign-key id returns **500**, not 400/404/409.
+- A body with a non-existent foreign-key id returns **409** `{ message: 'Operation conflicts with related records', code: 'CONFLICT' }` (Prisma `P2003`).
+- A body that references a fund, category or bank account of **another ledger** is rejected by the database and returns **409**. The same happens when a PATCH changes `ledgerId` so that the references no longer match, or moves a referenced fund, category or bank account to another ledger ([ARCHITECTURE.md §7](ARCHITECTURE.md#7-data-and-persistence)).
+- Deleting a record still referenced by others (FK `RESTRICT`), including a category that has subcategories, returns **409**.
 - A malformed JSON body returns **500**, not 400.
-- Deleting a record still referenced by others (FK `RESTRICT`) returns **500**.
 
 Throw `AppError` subclasses from use cases; controllers do not catch errors. `controllerAdapter` forwards them with `next(err)`.
 
@@ -733,7 +734,7 @@ Reference: [financial-fund-transaction.routes.spec.ts](../src/modules/financial/
 
 ### `prismaCall` test
 
-[`prisma-call.spec.ts`](../src/shared/database/prisma/__tests__/prisma-call.spec.ts) builds `Prisma.PrismaClientKnownRequestError` instances and checks the P2002 → `ConflictError` and P2025 → `NotFoundError` translations, and that other errors are rethrown unchanged.
+[`prisma-call.spec.ts`](../src/shared/database/prisma/__tests__/prisma-call.spec.ts) builds `Prisma.PrismaClientKnownRequestError` instances and checks the P2002 → `ConflictError`, P2003 → `ConflictError` and P2025 → `NotFoundError` translations, and that other errors are rethrown unchanged.
 
 ### OpenAPI tests
 
@@ -741,7 +742,7 @@ Location: [`src/docs/openapi/__tests__/`](../src/docs/openapi/__tests__). These 
 
 | Spec | Checks |
 |---|---|
-| `openapi-document.spec.ts` | Documented operations equal the Express routes mounted by `routes.ts` (read from the router stack); success status per method; security; shared error responses; `$ref` integrity, unused components, unique `operationId`s, path params, tags; response schema fields and JSON types against `Prisma.dmmf`. |
+| `openapi-document.spec.ts` | Documented operations equal the Express routes mounted by `routes.ts` (read from the router stack); success status per method; security; shared error responses; 409 wherever a foreign key can be violated (derived from `Prisma.dmmf`); `$ref` integrity, unused components, unique `operationId`s, path params, tags; response schema fields and JSON types against `Prisma.dmmf`. |
 | `openapi-errors.spec.ts` | Bodies from the real `validateRequest`, `apiKeyMiddleware` and `errorHandler` parse with the documented error schemas. |
 | `openapi-contract.spec.ts` | Each documented operation runs through the real routes, validation, controllers and use cases. Repository tokens are registered in the tsyringe container with mocks that return a Prisma-like record (`Prisma.Decimal`, `Date`) built from the documented entity example. The response must have the documented success status, equal the documented example and parse with the response schema. The spec has an explicit `modules` table that must include every module. |
 
@@ -789,6 +790,7 @@ Pushing to `develop` triggers a deploy to the `dev` stage; pushing to `main` dep
 1. **`schema.prisma`:** add the field to the model in [`src/services/database/prisma/schema.prisma`](../src/services/database/prisma/schema.prisma).
    - Existing models map camelCase fields to snake_case columns with `@map("...")` and tables with `@@map("...")`.
    - Text columns use `@db.VarChar(n)`; money uses `Decimal @db.Decimal(18, 2)`.
+   - A new reference from a ledger-scoped model to a fund, category or bank account (or any other ledger-scoped model) uses a composite relation: `@relation(fields: [<x>Id, ledgerId], references: [id, ledgerId], onDelete: Restrict, onUpdate: Restrict)`. The referenced model must declare `@@unique([id, ledgerId])`. References to global catalogs (currency, description) stay single-column.
 2. **Migration:**
    ```bash
    npm run prisma:migrate:dev -- --name <migration_name>
@@ -871,7 +873,7 @@ When adding a required variable, check all four places.
    - the fund-transaction credit/debit rule;
    - the `console.log` in `FinancialFundTransactionController.list`;
    - get-by-id return types with `| null`.
-7. **`:id` vs foreign keys.** Path `:id` is CUID-validated; body foreign keys are only `z.string()`. A non-existent foreign key reaches the database and returns 500.
+7. **`:id` vs foreign keys.** Path `:id` is CUID-validated; body foreign keys are only `z.string()`. A foreign key that does not exist, or that belongs to another ledger, is only rejected by the database and returns 409 (`P2003`), not 400.
 8. **Expecting use cases to detect missing records on update/delete.** They do not check existence; the 404 comes from `prismaCall` translating Prisma `P2025`. A use case that needs the record before writing must fetch it itself.
 9. **Prisma `undefined` filters.** Passing `undefined` in a `findMany` filter removes that condition instead of matching null.
 10. **Skipping `prisma generate`.** Schemas import Prisma enums; type check and tests fail without a generated client.

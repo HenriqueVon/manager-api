@@ -22,7 +22,7 @@ The Manager API is a REST API for managing personal finance records. It exposes 
 | Categories (hierarchical) | `/v1/api/financial/categories` | [`financial-category`](../src/modules/financial/financial-category) |
 | Entries (payable / receivable) | `/v1/api/financial/entries` | [`financial-entry`](../src/modules/financial/financial-entry) |
 
-A `Ledger` is the parent record for bank accounts, funds, categories, entries and fund transactions. Currencies, descriptions and payment methods are global catalogs (not scoped to a ledger).
+A `Ledger` is the parent record for bank accounts, funds, categories, entries and fund transactions. A ledger-scoped record may only reference funds, categories and bank accounts of its own ledger; the database enforces this ([Section 7](#7-data-and-persistence)). Currencies, descriptions and payment methods are global catalogs (not scoped to a ledger).
 
 ### Stack
 
@@ -314,9 +314,10 @@ All write operations go through `prismaCall`; no read operation does. No reposit
 ### `prismaCall`
 
 [`src/shared/database/prisma/prisma-call.ts`](../src/shared/database/prisma/prisma-call.ts):
-- Catches `Prisma.PrismaClientKnownRequestError` and translates two codes:
+- Catches `Prisma.PrismaClientKnownRequestError` and translates three codes:
   - **`P2002`** (unique constraint violation): logs the model and fields, then throws `ConflictError` (409);
-  - **`P2025`** (record to update or delete not found): throws `NotFoundError` (404).
+  - **`P2025`** (record to update or delete not found): throws `NotFoundError` (404);
+  - **`P2003`** (foreign key violation): throws `ConflictError('Operation conflicts with related records')` (409). This covers a related id that does not exist or belongs to another ledger, a `ledgerId` change that no longer matches the related records, and deleting or moving a record that is still referenced.
 - Rethrows every other error unchanged.
 
 ### Pagination
@@ -346,6 +347,25 @@ Every unique constraint in the schema has a corresponding pre-check in the creat
 - The checked value is normalized with `trim().toUpperCase()`.
 - The check is a separate query before the write, not atomic with it. Concurrent duplicates fall back to the DB constraint, and `prismaCall` translates that to 409.
 - Entries and fund transactions have no business unique constraint.
+
+### Ledger-scoped referential integrity
+
+References between ledger-scoped records use **composite foreign keys** that include `ledger_id`, so the referenced record must exist **in the same ledger**:
+
+| Referencing table | Composite foreign keys |
+|---|---|
+| `financial_entries` | `(financial_fund_id, ledger_id)` → funds, `(financial_category_id, ledger_id)` → categories |
+| `financial_fund_transactions` | `(financial_fund_id, ledger_id)` → funds, `(financial_category_id, ledger_id)` → categories, `(financial_bank_account_id, ledger_id)` → bank accounts |
+| `financial_categories` | `(parent_category_id, ledger_id)` → categories (not checked for root categories, where `parent_category_id` is `NULL`) |
+
+- The referenced tables (`financial_funds`, `financial_categories`, `financial_bank_accounts`) declare `@@unique([id, ledgerId])` so they can be the target of these keys.
+- All composite keys use `ON DELETE RESTRICT ON UPDATE RESTRICT`. As a consequence, the database rejects:
+  - a reference to a fund, category or bank account of another ledger;
+  - changing a record's `ledgerId` unless its references belong to the new ledger;
+  - moving a referenced fund, category or bank account to another ledger;
+  - deleting a category that has subcategories.
+- References to global catalogs (currencies, descriptions) remain single-column foreign keys.
+- The use cases do not check ledger membership themselves. Violations surface as Prisma `P2003`, which `prismaCall` translates to 409 ([Section 9](#9-error-handling)).
 
 ### Prisma models as application entities
 
@@ -404,20 +424,20 @@ There are four distinct runtime behaviors.
 - Where they are thrown:
   - `Unauthorized` / `Forbidden`: API key middleware and `AuthService`.
   - `NotFoundError`: the nine get-by-id use cases, and `prismaCall` (P2025, update or delete of a missing record).
-  - `ConflictError`: uniqueness checks in create/update use cases, and `prismaCall` (P2002).
+  - `ConflictError`: uniqueness checks in create/update use cases, and `prismaCall` (P2002 unique violation, P2003 foreign-key violation).
   - `BadRequestError`: the fund-transaction create/update use cases.
 - [`errorHandler`](../src/shared/http/middlewares/error-handlers.middleware.ts) logs with `console.warn` and responds `err.statusCode` with `{ message, code }`.
 
 ### Prisma errors
 
-- `prismaCall` translates `P2002` to `ConflictError` and `P2025` to `NotFoundError`.
-- All other Prisma errors reach `errorHandler` as non-`AppError` errors. This includes foreign-key violations on insert, update or delete.
+- `prismaCall` translates `P2002` and `P2003` to `ConflictError` (409) and `P2025` to `NotFoundError` (404). `P2003` includes the ledger-scoped composite keys ([Section 7](#7-data-and-persistence)).
+- All other Prisma errors reach `errorHandler` as non-`AppError` errors.
 
 ### Unexpected errors
 
 - Any non-`AppError` is logged with `console.error`.
 - Response: `500 { message: 'Internal server error' }`.
-- This includes Prisma errors other than P2002/P2025, malformed JSON bodies (the `express.json()` parse error is not an `AppError`) and network failures of the `fetch` call in `AuthService`.
+- This includes Prisma errors other than P2002/P2003/P2025, malformed JSON bodies (the `express.json()` parse error is not an `AppError`) and network failures of the `fetch` call in `AuthService`.
 
 Use cases for update and delete do not check that the record exists before calling the repository; the 404 for a missing record comes from `prismaCall` (P2025).
 
@@ -462,7 +482,7 @@ Every request to `app` passes two global checks, in this order. `/docs` is outsi
 - **Module files.** Each `<module>.openapi.ts`:
   - registers the create and update input schemas with `openApiRegistry.register(...)` and uses the **returned** schema, so request bodies reference the components. The update input adds `minProperties: 1` to document the "at least one field" rule;
   - defines one entity example and one input example;
-  - calls `registerPath` for the five operations. Error responses use `responseRef(...)` plus `...globalErrorResponses`; 409 is documented only in modules with a unique constraint.
+  - calls `registerPath` for the five operations. Error responses use `responseRef(...)` plus `...globalErrorResponses`. 409 is documented on create/update of models with a unique constraint or with foreign keys, and on delete of models referenced by other models.
   - [`docs/openapi/modules.ts`](../src/docs/openapi/modules.ts) imports all of them for their side effects.
 - **Tags.** [`docs/openapi/tags.ts`](../src/docs/openapi/tags.ts) defines one tag per module.
 - **Document generation.**
@@ -511,7 +531,7 @@ There are 52 spec files: 48 co-located in each module's `__tests__/` folder, one
 
 ### `prismaCall` test (1 file)
 
-- [`prisma-call.spec.ts`](../src/shared/database/prisma/__tests__/prisma-call.spec.ts) checks the P2002 → `ConflictError` and P2025 → `NotFoundError` translations and that other errors are rethrown unchanged.
+- [`prisma-call.spec.ts`](../src/shared/database/prisma/__tests__/prisma-call.spec.ts) checks the P2002 → `ConflictError`, P2003 → `ConflictError` and P2025 → `NotFoundError` translations and that other errors are rethrown unchanged.
 
 ### OpenAPI tests (3 files)
 
@@ -519,7 +539,7 @@ Located in [`src/docs/openapi/__tests__/`](../src/docs/openapi/__tests__). Requi
 
 | Spec | What it checks |
 |---|---|
-| `openapi-document.spec.ts` | Every Express route mounted by `routes.ts` is documented, and vice versa. Each method uses the conventional success status. Security requires both schemes. Every operation documents 400/401/403/500 (and 404 when it has `{id}`) through shared response components. Every `$ref` resolves, no component is unused, `operationId`s are unique, path params and tags are declared. Each response schema has exactly the fields of its Prisma model, with the JSON type of each Prisma type. |
+| `openapi-document.spec.ts` | Every Express route mounted by `routes.ts` is documented, and vice versa. Each method uses the conventional success status. Security requires both schemes. Every operation documents 400/401/403/500 (and 404 when it has `{id}`) through shared response components, and 409 wherever a foreign key can be violated (derived from `Prisma.dmmf`). Every `$ref` resolves, no component is unused, `operationId`s are unique, path params and tags are declared. Each response schema has exactly the fields of its Prisma model, with the JSON type of each Prisma type. |
 | `openapi-errors.spec.ts` | The bodies produced by the real `validateRequest`, `apiKeyMiddleware` and `errorHandler` (validation error, each `AppError` subclass, unexpected error) match the documented error schemas. |
 | `openapi-contract.spec.ts` | Every documented operation runs through the real routes, validation, controllers and use cases, with each repository token registered as a mock that returns a Prisma-like record (`Prisma.Decimal`, `Date`) built from the documented example. The response must use the documented success status and match the documented example and response schema. |
 
@@ -592,33 +612,32 @@ Listed factually. No fixes are proposed in this document.
 2. In the fund and category update use cases, the uniqueness filter uses `input.ledgerId` / `input.parentCategoryId`. When these are not in the request body they are `undefined`, Prisma ignores them, and the check spans all ledgers or parents. The same applies to category create when `parentCategoryId` is omitted.
 3. The category unique index `(ledger_id, parent_category_id, name)` does not use `NULLS NOT DISTINCT`. Under PostgreSQL defaults it does not prevent duplicate root categories (`parent_category_id IS NULL`).
 4. The fund-transaction update use case validates the credit/debit rule only when both amounts are present in the request.
-5. Use cases do not verify that referenced records (fund, category, bank account, description) belong to the `ledgerId` being written.
-6. `additionalDescription` is required in the create schemas for entries and fund transactions, but nullable in the database.
-7. `updateLedgerSchema` lacks `.strict()`, so unknown keys are stripped instead of rejected.
+5. `additionalDescription` is required in the create schemas for entries and fund transactions, but nullable in the database.
+6. `updateLedgerSchema` lacks `.strict()`, so unknown keys are stripped instead of rejected.
 
 **Errors**
 
-8. Foreign-key violations and malformed JSON bodies produce 500: `prismaCall` translates only P2002 and P2025, and `errorHandler` ignores the 400 status set by the JSON body parser. The OpenAPI `InternalError` response describes this behavior.
+7. Malformed JSON bodies produce 500: `errorHandler` ignores the 400 status set by the JSON body parser. The OpenAPI `InternalError` response describes this behavior.
 
 **Dependency injection and wiring**
 
-9. The per-request child container has no scoped registrations, so it provides no per-request isolation.
-10. `AuthService`, the Prisma client and configuration are outside the DI container. `prisma.client.ts` reads `process.env.DATABASE_URL` directly rather than `env`.
-11. The composition root lives in `src/shared/` and imports every module.
+8. The per-request child container has no scoped registrations, so it provides no per-request isolation.
+9. `AuthService`, the Prisma client and configuration are outside the DI container. `prisma.client.ts` reads `process.env.DATABASE_URL` directly rather than `env`.
+10. The composition root lives in `src/shared/` and imports every module.
 
 **Runtime behavior**
 
-12. `GET /health` is registered after `errorHandler` and behind the API key and authentication middleware.
-13. `AUTH_API_URL` is required by `config/env.ts` but is not listed in `serverless.yml` `provider.environment` or in the deploy jobs' environment.
+11. `GET /health` is registered after `errorHandler` and behind the API key and authentication middleware.
+12. `AUTH_API_URL` is required by `config/env.ts` but is not listed in `serverless.yml` `provider.environment` or in the deploy jobs' environment.
 
 **Code-level oddities**
 
-14. All nine get-by-id use cases declare `Promise<X | null>` but never return `null`.
-15. `exists()` is declared and implemented in all repositories but is never called by application code (the OpenAPI contract spec only mocks it). `IdParamsDto` is declared but unused. `req.requestId` is set but never read.
-16. List use cases always pass empty filters, so the `findMany` filter support is not reachable through the HTTP API.
-17. `FinancialFundTransactionController.list` contains a `console.log`, which ESLint reports as a warning.
-18. `package.json` lists the npm package `crypto` as a dependency, while the code imports `crypto` (resolved to the Node built-in). `typescript-eslint` is listed under `dependencies`.
-19. The repository `README.md` contains only the project title.
+13. All nine get-by-id use cases declare `Promise<X | null>` but never return `null`.
+14. `exists()` is declared and implemented in all repositories but is never called by application code (the OpenAPI contract spec only mocks it). `IdParamsDto` is declared but unused. `req.requestId` is set but never read.
+15. List use cases always pass empty filters, so the `findMany` filter support is not reachable through the HTTP API.
+16. `FinancialFundTransactionController.list` contains a `console.log`, which ESLint reports as a warning.
+17. `package.json` lists the npm package `crypto` as a dependency, while the code imports `crypto` (resolved to the Node built-in). `typescript-eslint` is listed under `dependencies`.
+18. The repository `README.md` contains only the project title.
 
 ---
 
@@ -662,7 +681,7 @@ Listed factually. No fixes are proposed in this document.
 
 - There are no aggregates, value objects, domain services, domain events or repositories per aggregate.
 - Models are anemic Prisma records.
-- Cross-entity rules are not enforced in code: for example, ledger consistency between related records, and balances that are plain writable fields.
+- Cross-entity rules are not modeled in code: ledger consistency between related records is enforced only by database constraints, and balances are plain writable fields.
 - The domain vocabulary appears in names only.
 
 ---
@@ -673,6 +692,7 @@ The structural steps the existing pattern currently requires. Use an existing mo
 
 **Persistence**
 - [ ] Add the model (and enums, if any) to [`schema.prisma`](../src/services/database/prisma/schema.prisma) and create a migration in [`migrations/`](../src/services/database/prisma/migrations). Run `prisma generate`.
+- [ ] If the model is ledger-scoped and references another ledger-scoped model, use a composite relation `fields: [<x>Id, ledgerId], references: [id, ledgerId]` with `onDelete: Restrict, onUpdate: Restrict`. The referenced model needs `@@unique([id, ledgerId])`.
 
 **Module files** (under `src/modules/...`)
 - [ ] `schemas/`: `create-<m>.schema.ts` (`.strict()`), `update-<m>.schema.ts` (optional fields, `.strict()`, at-least-one-field `refine`), `list-<m>-query.schema.ts` (`limit`/`offset`/`orderBy` enum/`orderDirection`, `.strict()`), `<m>.schema.ts` (every Prisma model field with its JSON type — `decimalString`, `dateTimeString`, `.nullable()` for optional columns — and `.openapi('<M>')`), `list-<m>-response.schema.ts` (`paginatedResponseSchema(...).openapi('List<M>Response')`), `index.ts`.
@@ -683,7 +703,7 @@ The structural steps the existing pattern currently requires. Use an existing mo
 - [ ] `usecases/`: `create`, `update`, `list`, `get-by-id`, `delete` use cases (`@injectable()`, `@inject(<M>_REPOSITORY)`, `execute()`), plus `index.ts`. Add a uniqueness pre-check for each DB unique constraint.
 - [ ] `<m>.controller.ts`: `@injectable()`, inject the five use cases, same five methods and status codes as existing controllers.
 - [ ] `<m>.routes.ts`: five routes with `validateRequest` (use `idParamsSchema` for `:id`) and `controllerAdapter`.
-- [ ] `<m>.openapi.ts`: register the create/update input schemas (using the returned schemas), one entity example and one input example, and the five paths with `responseRef(...)` and `...globalErrorResponses` from `docs/openapi/responses.ts`. Document 409 only if the model has a unique constraint.
+- [ ] `<m>.openapi.ts`: register the create/update input schemas (using the returned schemas), one entity example and one input example, and the five paths with `responseRef(...)` and `...globalErrorResponses` from `docs/openapi/responses.ts`. Document 409 on create/update if the model has a unique constraint or foreign keys, and on delete if other models reference it (`openapi-document.spec.ts` checks the foreign-key cases).
 
 **Central registration**
 - [ ] Register the repository in [`src/shared/container/index.ts`](../src/shared/container/index.ts) with `container.registerSingleton<I...>(TOKEN, Impl)`.
