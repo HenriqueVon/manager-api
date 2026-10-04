@@ -44,8 +44,35 @@ jobs:
       - name: Run tests
         run: npm run test
 
-  deploy-dev:
+  migrate-dev:
     needs: validate
+    if: github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    environment: dev
+    concurrency:
+      group: migrate-dev
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply database migrations
+        run: npm run prisma:migrate:prod
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  deploy-dev:
+    needs: [validate, migrate-dev]
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     environment: dev
@@ -79,8 +106,35 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           API_KEY: ${{ secrets.API_KEY }}        
 
-  deploy-prod:
+  migrate-prod:
     needs: validate
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: prd
+    concurrency:
+      group: migrate-prod
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply database migrations
+        run: npm run prisma:migrate:prod
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  deploy-prod:
+    needs: [validate, migrate-prod]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prd

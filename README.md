@@ -53,7 +53,7 @@ CI runs the same checks on pull requests to `develop`/`main` and before every de
 
 ## Deployment
 
-A push to `develop` deploys the `dev` stage; a push to `main` deploys `prod` (GitHub Actions + Serverless). Database migrations are **not** applied by the pipeline; they are applied manually per stage.
+A push to `develop` deploys the `dev` stage; a push to `main` deploys `prod` (GitHub Actions + Serverless). Pending database migrations are applied by the pipeline to the target stage before the deploy.
 
 ## Documentation
 

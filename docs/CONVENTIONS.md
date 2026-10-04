@@ -392,6 +392,7 @@ Workflow: [DEVELOPMENT.md §16](DEVELOPMENT.md#16-adding-a-new-database-field).
 
 **MUST**
 - Every schema change ships with a committed migration created by `npm run prisma:migrate:dev -- --name <name>`, followed by `npm run prisma:generate`.
+- A migration is compatible with the previous code, because the pipeline applies it before the new code is deployed: add before removing, and never rename or drop a column in the same change that stops using it.
 - Every model has `id String @id @default(cuid())`, `createdAt DateTime @default(now()) @map("created_at")` and `updatedAt DateTime @updatedAt @map("updated_at")`.
 - Tables use `@@map("<snake_plural>")`; multi-word fields use `@map("<snake_case>")`.
 - Monetary values use `Decimal @db.Decimal(18, 2)`.
