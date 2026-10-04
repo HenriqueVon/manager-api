@@ -782,7 +782,7 @@ A workflow using only the tools in this repository:
    - optionally run with `DOCS_ENABLED=true` and check `/docs` or `/docs/openapi.json`.
 9. **Schema changes:** if `schema.prisma` changed, include the generated migration (see [Section 16](#16-adding-a-new-database-field)).
 
-Pushing to `develop` triggers a deploy to the `dev` stage; pushing to `main` deploys to `prod`. Both run only after the `validate` job (lint, type check, tests) succeeds.
+Pull requests to `develop` or `main` run the `validate` job (lint, type check, tests) without deploying. Pushing to `develop` triggers a deploy to the `dev` stage; pushing to `main` deploys to `prod`. Both run only after `validate` succeeds.
 
 ---
 
