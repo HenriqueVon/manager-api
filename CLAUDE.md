@@ -7,6 +7,7 @@ How to operate in this repository. The detailed rules live in `docs/`; this file
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): how the system is built today, including known inconsistencies (§15).
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md): how to work here, with commands, step-by-step guides and pitfalls.
 - [docs/CONVENTIONS.md](docs/CONVENTIONS.md): the rules new code must follow (MUST / SHOULD / AVOID).
+- [docs/DOMAIN.md](docs/DOMAIN.md): business concepts and rules per module, marked as enforced, stored only or open.
 
 Read the sections relevant to the task before editing.
 
@@ -89,7 +90,8 @@ Update documentation only when the change actually alters:
 
 - architecture → `docs/ARCHITECTURE.md`;
 - development workflow → `docs/DEVELOPMENT.md`;
-- a convention → `docs/CONVENTIONS.md`.
+- a convention → `docs/CONVENTIONS.md`;
+- a business rule or domain concept → `docs/DOMAIN.md`.
 
 Internal changes that do not alter documented behavior or rules do not require doc updates.
 
@@ -108,7 +110,7 @@ The user reviews and commits manually.
 ## 11. Scope and Safety
 
 - If the task is ambiguous, inspect the code first, then ask. Do not guess.
-- Do not assume product intent (e.g. single-user vs multi-user, balance rules).
+- Do not assume product intent (e.g. single-user vs multi-user, balance rules). Check the open questions in [docs/DOMAIN.md](docs/DOMAIN.md); if the answer is not there, ask.
 - Open decisions are decisions, not tasks. Present options instead of implementing one; see issues labeled `decision`.
 - Do not fix several technical-debt items in one task unless asked; mention them instead.
 - Preserve existing behavior outside the scope.
@@ -133,3 +135,4 @@ The user reviews and commits manually.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - [docs/CONVENTIONS.md](docs/CONVENTIONS.md)
+- [docs/DOMAIN.md](docs/DOMAIN.md)
