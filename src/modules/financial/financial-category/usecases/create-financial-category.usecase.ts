@@ -13,11 +13,12 @@ export class CreateFinancialCategoryUseCase {
   ) {}
 
   async execute(input: CreateFinancialCategoryDto): Promise<FinancialCategory> {
+    const name = input.name.trim().toUpperCase();
     const existingCategory = await this.financialCategoryRepository.findMany(
       {
         ledgerId         : input.ledgerId,
         parentCategoryId : input.parentCategoryId,
-        name             : input.name.trim().toUpperCase(),
+        name             : name,
       },
       { limit: 1 }
     );
@@ -28,6 +29,6 @@ export class CreateFinancialCategoryUseCase {
       );
     }
 
-    return this.financialCategoryRepository.create(input);
+    return this.financialCategoryRepository.create({ ...input, name });
   }
 }

@@ -56,7 +56,7 @@ describe('CreateFinancialCategoryUseCase', () => {
     );
 
     expect(repo.create).toHaveBeenCalledTimes(1);
-    expect(repo.create).toHaveBeenCalledWith(input);
+    expect(repo.create).toHaveBeenCalledWith({ ...input, name: 'EXPENSES' });
 
     expect(result).toBe(createdFinancialCategory);
   });
@@ -99,7 +99,7 @@ describe('CreateFinancialCategoryUseCase', () => {
       }
     );
 
-    expect(repo.create).toHaveBeenCalledWith(input);
+    expect(repo.create).toHaveBeenCalledWith({ ...input, name: 'SUPERMARKET' });
     expect(result).toBe(createdFinancialCategory);
   });
 
