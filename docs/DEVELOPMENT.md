@@ -798,6 +798,8 @@ Pull requests to `develop` or `main` run the `validate` job (lint, type check, t
    ```
    - This requires `DATABASE_URL` and `SHADOW_DATABASE_URL`.
    - Existing migration names describe the change in snake_case: `create_table_financial_funds`, `add_collum_financial_bank_account_id_to_table_financial_fund_transactions`, `update_unique_key_table_financial_funds`.
+   - Wrap the SQL of the generated `migration.sql` in `BEGIN;` and `COMMIT;`, so a failure leaves no partial changes. Keep the explanatory comment above `BEGIN;`.
+   - If the migration can fail on existing data (new unique or foreign key constraints), list the diagnostic queries in the comment at the top of the file.
    - Commit the generated folder under `migrations/`.
 3. **Prisma generate:**
    ```bash
@@ -816,7 +818,14 @@ Pull requests to `develop` or `main` run the `validate` job (lint, type check, t
 8. **OpenAPI:** update the entity example and input example in `<m>.openapi.ts`. `openapi-contract.spec.ts` fails if the entity example does not match what the API returns.
 9. **Tests:** add route validation cases for the new field and adjust use case specs if logic changed.
 
-Migrations reach deployed environments through the `migrate-dev` and `migrate-prod` jobs in [`deploy.yml`](../.github/workflows/deploy.yml), which run before `serverless deploy`. For a short time the previous code runs against the new schema, so a migration must stay compatible with the previous code: add before removing, and do not rename or drop a column in the same change that stops using it. If a migration fails midway, the deploy does not run; fix the database state (`prisma migrate resolve`) and re-run the workflow.
+Migrations reach deployed environments through the `migrate-dev` and `migrate-prod` jobs in [`deploy.yml`](../.github/workflows/deploy.yml), which run before `serverless deploy`. For a short time the previous code runs against the new schema, so a migration must stay compatible with the previous code: add before removing, and do not rename or drop a column in the same change that stops using it. If a migration fails, the deploy does not run, and the failed migration is recorded in `_prisma_migrations`, which blocks every later run (`P3009`). Prisma does not undo the statements that ran before the error, so the database may be left partially migrated, and a plain re-run then fails on objects that already exist (`42P07`). To recover:
+
+1. Fix the cause (for example, existing rows that violate a new constraint).
+2. Revert by hand whatever the failed migration already applied (indexes, constraints, columns).
+3. Run `npx prisma migrate resolve --rolled-back <migration_name>` against that stage's database.
+4. Re-run the failed jobs of the workflow.
+
+Wrapping the migration SQL in `BEGIN;` / `COMMIT;` (the migration step above) avoids the partial state, so the manual revert in step 2 is not needed. Before a migration that adds constraints reaches `prd`, run its diagnostic queries against that database.
 
 ---
 
