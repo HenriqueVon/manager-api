@@ -377,7 +377,7 @@ The tooling is the source of truth: [`eslint.config.mjs`](../eslint.config.mjs) 
 - TypeScript `strict` mode, with decorators and decorator metadata enabled.
 
 **MUST**
-- `npm run lint` with 0 errors and `npm run check:ts` passing; CI runs both before deploying.
+- `npm run lint` with 0 errors and `npm run check:ts` passing; CI runs both on pull requests and before deploying.
 - No new lint warnings. The two existing warnings are legacy ([Section 19](#19-code-that-should-not-be-copied)).
 
 **SHOULD**

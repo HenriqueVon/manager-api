@@ -49,7 +49,7 @@ npm run check:ts
 npm run test:run
 ```
 
-CI runs the same checks before deploying.
+CI runs the same checks on pull requests to `develop`/`main` and before every deploy.
 
 ## Deployment
 
