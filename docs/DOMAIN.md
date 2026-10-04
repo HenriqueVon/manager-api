@@ -29,6 +29,8 @@ Each rule is marked with one of three statuses:
 
 The **ledger** is the unit of separation: an independent set of finances. Most financial records belong to exactly one ledger. A few catalogs are **shared** by all ledgers.
 
+**Ownership (decided):** the system is **single-user for now** ([issue #19](https://github.com/HenriqueVon/manager-api/issues/19)). All ledgers belong to the same user, and any authenticated caller can access every ledger. Ledgers separate finances; they do not separate users. Multi-user support would require a new decision.
+
 | Concept | Term (pt-BR) | Scope | API path (`/v1/api/...`) |
 |---|---|---|---|
 | Currency | Moeda | Shared | `financial/currencies` |
@@ -124,7 +126,6 @@ Decisions not taken yet. Do not implement an answer without a decision.
 
 | Question | Current behavior |
 |---|---|
-| Single-user or multi-user? Who may access which ledger? ([issue #19](https://github.com/HenriqueVon/manager-api/issues/19)) | Any authenticated caller accesses all ledgers |
 | Should balances be derived from entries and fund transactions? | Balances are plain writable fields |
 | Should bank account names be unique per ledger, like funds? | Unique across all ledgers |
 | Where is the payment method used (e.g. on entries)? | Not referenced by any record |

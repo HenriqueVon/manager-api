@@ -110,7 +110,7 @@ The user reviews and commits manually.
 ## 11. Scope and Safety
 
 - If the task is ambiguous, inspect the code first, then ask. Do not guess.
-- Do not assume product intent (e.g. single-user vs multi-user, balance rules). Check the open questions in [docs/DOMAIN.md](docs/DOMAIN.md); if the answer is not there, ask.
+- Do not assume product intent (e.g. balance rules, where payment methods are used). Check the open questions in [docs/DOMAIN.md](docs/DOMAIN.md); if the answer is not there, ask.
 - Open decisions are decisions, not tasks. Present options instead of implementing one; see issues labeled `decision`.
 - Do not fix several technical-debt items in one task unless asked; mention them instead.
 - Preserve existing behavior outside the scope.

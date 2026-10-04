@@ -685,9 +685,10 @@ The local server ([`src/local.ts`](../src/local.ts)) wraps `app` in an outer Exp
 | Unknown paths | yes | yes (before the default 404) |
 
 **Identity and authorization:**
+- The API is **single-user for now** ([issue #19](https://github.com/HenriqueVon/manager-api/issues/19)). Do not add user ownership or per-user access checks without a new decision.
 - The auth API response body is not read.
 - No user identity is attached to the request, and there are no per-user or per-ledger access checks.
-- Any request that passes both checks can access all data.
+- Any request that passes both checks can access all data, which is intended under the single-user decision.
 
 ---
 

@@ -454,10 +454,11 @@ Every request to `app` passes two global checks, in this order. `/docs` is outsi
    - treats any non-2xx response as `Unauthorized('Invalid or expired token')`;
    - uses no timeout and no caching.
 
-**Identity and authorization (current behavior):**
+**Identity and authorization:**
+- **Decision: manager-api is single-user for now** ([issue #19](https://github.com/HenriqueVon/manager-api/issues/19)). Authentication only establishes that the caller is allowed to use the API; there is no data ownership.
 - The response body of the validation call is not read.
 - No user identity is attached to the request.
-- No authorization check exists: any request that passes both checks can access every ledger and every resource.
+- No authorization check exists: any request that passes both checks can access every ledger and every resource. This is intended under the single-user decision. Supporting multiple users would require a new decision.
 
 **Configuration:**
 - [`config/env.ts`](../src/config/env.ts) requires `DATABASE_URL`, `API_KEY` and `AUTH_API_URL`; a missing value throws at module load.
