@@ -38,6 +38,11 @@ export async function prismaCall<T>(fn: () => Promise<T>): Promise<T> {
       if (err.code === 'P2025') {
         throw new NotFoundError();
       }
+
+      // Foreign key violation:
+      if (err.code === 'P2003') {
+        throw new ConflictError('Operation conflicts with related records');
+      }
     }
 
     throw err;

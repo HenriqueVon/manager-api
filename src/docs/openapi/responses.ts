@@ -67,13 +67,13 @@ registerJsonResponse(
 
 registerJsonResponse(
   'Conflict',
-  'A resource with the same unique values already exists',
+  'A resource with the same unique values already exists, or the operation conflicts with related records.',
   schemaRef('AppErrorResponse')
 );
 
 registerJsonResponse(
   'InternalError',
-  'Unexpected error. Currently also returned for foreign-key violations (a related id that does not exist, or deleting a record that is still referenced) and for malformed JSON bodies',
+  'Unexpected error. Currently also returned for malformed JSON bodies',
   schemaRef('InternalErrorResponse')
 );
 
