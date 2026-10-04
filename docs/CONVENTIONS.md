@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document answers one question: **when I write new code in this repository, which rules must I follow?** It is a rule book, derived from the committed code and checked against it module by module.
+This document answers one question: **when I write new code in this repository, which rules must I follow?** It is a rule book. Most rules are derived from the committed code and checked against it module by module; others record decisions made for the project, such as the design and readability principles in [Section 2](#2-general-principles).
 
 | Document | Answers |
 |---|---|
@@ -16,7 +16,7 @@ New code follows these conventions. Deviating from a **MUST** or **SHOULD** requ
 |---|---|
 | **MUST** | Required: a project invariant, enforced by tooling or tests, needed for correct behavior, or a consolidated architectural decision. |
 | **SHOULD** | Strongly established convention; exceptions are possible but must be justified. |
-| **AVOID** | Existing pattern identified as an inconsistency, legacy, accidental behavior or known problem. Do not replicate it. |
+| **AVOID** | Existing pattern identified as an inconsistency, legacy, accidental behavior or known problem, or a pattern that must not be introduced without an explicit decision. Do not replicate or introduce it. |
 
 ---
 
@@ -29,6 +29,63 @@ New code follows these conventions. Deviating from a **MUST** or **SHOULD** requ
 5. **Explicit dependencies.** Classes receive dependencies through constructor injection (tsyringe).
 6. **Copy structure, not behavior.** Domain rules of one module are not templates for another.
 7. **Runtime and documentation stay aligned.** The OpenAPI tests fail when they drift.
+8. **Human readability comes first.** Code is written for developers to understand and maintain, not to minimize line count or maximize abstraction.
+9. **Prefer established designs.** Use simple, conventional and proven solutions before introducing novel abstractions or additional architectural patterns.
+
+### Design and Readability
+
+**MUST**
+- Write code for human readers. New code must be straightforward for another developer to read, understand and maintain without reverse-engineering clever abstractions. Prefer:
+  - descriptive names that express intent;
+  - explicit and predictable control flow;
+  - small, cohesive units with clear responsibilities;
+  - obvious data transformations;
+  - visible dependencies;
+  - conventional TypeScript, Express, Prisma and OOP idioms;
+  - code whose normal execution path can be followed without unnecessary context.
+- Do not trade clarity for cleverness. Avoid:
+  - cleverness for its own sake;
+  - dense expressions that save lines but reduce clarity;
+  - hidden side effects;
+  - unnecessary indirection;
+  - deeply nested logic when it can be expressed more clearly;
+  - abstractions that require navigating several files to understand a simple operation;
+  - comments that explain what unnecessarily complicated code is doing instead of simplifying the code.
+
+Code is read far more often than it is written. Optimize for the next human who has to understand it.
+
+**SHOULD**
+- Prefer established object-oriented principles and well-known design patterns when they solve the problem clearly. Favor:
+  - composition over unnecessary inheritance;
+  - single, clear responsibilities;
+  - explicit dependencies;
+  - dependency inversion when it provides a concrete benefit;
+  - encapsulation when it makes behavior easier to understand;
+  - standard design patterns when they naturally match the problem;
+  - simple solutions that can evolve when requirements become clearer.
+
+  OOP and SOLID principles are tools and heuristics for producing understandable and maintainable code. They are not goals to maximize mechanically.
+- Prefer explicit code over clever code. When two implementations are equally correct, prefer the one whose behavior is easier to infer by reading it. Fewer lines are not inherently better code. Prefer an explicit implementation over a compact or highly generic alternative when the explicit version is easier to understand and maintain.
+
+**AVOID**
+- Architectural sophistication without a concrete need. Do not introduce architectural patterns merely because they are considered "clean", "modern" or theoretically preferable. Avoid introducing, without a demonstrated problem and an explicit architectural decision:
+  - DDD layers or tactical patterns;
+  - CQRS;
+  - Event Sourcing;
+  - Hexagonal Architecture;
+  - additional Clean Architecture layers;
+  - generic command/query buses;
+  - custom dependency-injection mechanisms;
+  - generic repository frameworks;
+  - speculative plugin systems;
+  - custom internal frameworks;
+  - abstractions created only for hypothetical future requirements.
+
+  If the current architecture and a straightforward OOP solution solve the problem clearly, prefer them.
+
+> Prefer boring, proven and readable code over clever, novel abstractions.
+>
+> Architecture exists to make the system easier to understand and change, not to maximize the number of architectural patterns used.
 
 ---
 
@@ -398,6 +455,8 @@ Confirmed issues present in the committed code. Do not use them as references.
 ## 20. Pull Request / Definition of Done
 
 - [ ] Code follows this document; any deviation is justified in the PR.
+- [ ] Code is straightforward for another human developer to read and maintain.
+- [ ] No unnecessary abstraction, indirection or architectural pattern was introduced.
 - [ ] Validation schemas updated (`.strict()`, refine, idParamsSchema).
 - [ ] OpenAPI updated if the contract changed (paths, response schemas, examples, status codes).
 - [ ] Tests added/updated (use case specs, route spec, OpenAPI contract table for new modules).
@@ -420,6 +479,8 @@ route ─► validateRequest ─► controllerAdapter ─► Controller ─► U
 
 | Concern | Convention |
 |---|---|
+| Readability | Human-readable, explicit and maintainable code first |
+| Design | Prefer simple, established OOP/patterns; avoid speculative architecture |
 | Module isolation | No imports between modules |
 | Endpoint | `validateRequest(...)` → `controllerAdapter(Controller, 'method')` |
 | `:id` | `idParamsSchema` (CUID) |

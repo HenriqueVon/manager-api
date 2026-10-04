@@ -14,7 +14,6 @@ Read the sections relevant to the task before editing.
 
 - **Committed code is the source of truth.** Infer architecture, patterns and conventions from `HEAD`.
 - Uncommitted local changes are not official architecture. Do not copy them, document them or treat them as patterns. Consider them only when the user explicitly asks.
-- The checked-out committed `HEAD` is the source of truth for the task.
 - If the local branch is behind or diverged from its remote, report it before making changes. Do not pull, merge, rebase or switch to the remote state unless the user explicitly asks.
 - When the docs and the code disagree, the code wins. Report the mismatch.
 - A documented architectural decision may intentionally describe a target rule not yet implemented. Do not silently treat it as current runtime behavior.
@@ -27,6 +26,8 @@ Read the sections relevant to the task before editing.
 - Do not change business rules implicitly. Any behavior change must be stated in the summary.
 - Do not introduce new abstractions, helpers or dependencies without a demonstrated need.
 - Do not copy known bugs or exceptions as patterns: [CONVENTIONS.md §19](docs/CONVENTIONS.md#19-code-that-should-not-be-copied), [ARCHITECTURE.md §15](docs/ARCHITECTURE.md#15-known-architectural-inconsistencies).
+- Write boring, readable code for the next human developer. Prefer simple, established designs (standard OOP, composition, well-known patterns) over clever or highly abstract solutions.
+- Do not introduce architectural patterns (DDD, CQRS, event sourcing, Hexagonal, extra Clean Architecture layers, custom frameworks) for architectural purity. Details: [CONVENTIONS.md §2 — Design and Readability](docs/CONVENTIONS.md#design-and-readability).
 
 ## 4. Architecture Guardrails
 
@@ -117,6 +118,8 @@ The user reviews and commits manually.
 - [ ] Scope respected; no unrelated changes
 - [ ] Architecture guardrails respected
 - [ ] Conventions respected; nothing from AVOID copied
+- [ ] Code is straightforward for another human developer to read and maintain
+- [ ] No unnecessary abstraction, indirection or architectural pattern introduced
 - [ ] OpenAPI updated if the contract changed
 - [ ] Migration added if `schema.prisma` changed; client regenerated; applied only after the user approved it
 - [ ] Tests added/updated
