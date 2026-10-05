@@ -781,6 +781,7 @@ A workflow using only the tools in this repository:
    - run the OpenAPI specs: `npm run test:run -- src/docs`;
    - optionally run with `DOCS_ENABLED=true` and check `/docs` or `/docs/openapi.json`.
 9. **Schema changes:** if `schema.prisma` changed, include the generated migration (see [Section 16](#16-adding-a-new-database-field)).
+10. **Learnings:** ask what you discovered that the next person would trip on (a gotcha, a missing rule, code not to copy, a choice made on the way). Record verified, non-obvious facts in the right document, in the same pull request: pitfalls in [Section 19](#19-common-pitfalls), rules in [CONVENTIONS.md](CONVENTIONS.md), business rules in [DOMAIN.md](DOMAIN.md). See [CLAUDE.md §9](../CLAUDE.md#capturing-learnings).
 
 Pull requests to `develop` or `main` run the `validate` job (lint, type check, tests) without deploying. Pushing to `develop` triggers a deploy to the `dev` stage; pushing to `main` deploys to `prod`. Both run only after `validate` succeeds.
 
@@ -864,6 +865,7 @@ When adding a required variable, check all four places.
 - [ ] `npm run test:run` passes.
 - [ ] Diff reviewed; no debug output left (`console.log` triggers an ESLint warning).
 - [ ] No known exception (Sections [6](#6-schemas-and-validation), [8](#8-use-cases), [19](#19-common-pitfalls)) copied into new code.
+- [ ] Learnings from the task recorded in the right document, or none found ([Section 15](#15-development-workflow), step 10).
 
 ---
 
