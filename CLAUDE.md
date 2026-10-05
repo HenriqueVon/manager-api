@@ -95,6 +95,20 @@ Update documentation only when the change actually alters:
 
 Internal changes that do not alter documented behavior or rules do not require doc updates.
 
+### Capturing Learnings
+
+At the end of every task, check whether anything was **discovered** on the way that the next developer or session would trip on: a tooling, environment or deployment gotcha, a rule that turned out to be needed, existing code that must not be copied, a choice made during implementation.
+
+- Record only verified, non-obvious facts. Not speculation, and not what the code or git history already shows.
+- Put each one where it belongs; do not create a separate "lessons learned" file:
+  - gotcha → `docs/DEVELOPMENT.md` §19 Common Pitfalls;
+  - rule for new code → `docs/CONVENTIONS.md`;
+  - existing code not to copy → `docs/CONVENTIONS.md` §19 and `docs/ARCHITECTURE.md` §15;
+  - business rule or domain concept → `docs/DOMAIN.md`;
+  - design choice already settled → the document of its subject (`docs/ARCHITECTURE.md` or `docs/DOMAIN.md`); a choice still open is a decision, not a learning: draft an issue labeled `decision` and show it to the user before publishing (§10);
+  - preference about how Claude works → Claude memory, not the repository.
+- List the learnings and their destination in the final summary, and add them to the same pull request after the user agrees. If there is nothing to record, say so explicitly.
+
 ## 10. Git Rules
 
 - Do not commit.
@@ -128,6 +142,7 @@ The user reviews and commits manually.
 - [ ] lint ok · type check ok · tests ok (results shown)
 - [ ] Diff reviewed; no unintended files
 - [ ] Docs updated only where needed
+- [ ] Learnings reviewed (§9): listed with their destination, or "nothing to record" stated
 - [ ] No commit, no push
 
 ## 13. Useful References
