@@ -185,6 +185,7 @@ src/modules/financial/<m>/
 - Create schemas end with `.strict()` (unknown keys → 400).
 - Update schemas: every field `.optional()`, `.strict()`, and `.refine((data) => Object.keys(data).length > 0, { message: 'At least one field must be provided' })`.
 - List-query schemas: `limit: z.coerce.number().int().min(1).max(100).optional()`, `offset: z.coerce.number().int().min(0).optional()`, `orderBy: z.enum([...sortable fields]).optional()`, `orderDirection: z.enum(['asc', 'desc']).optional()`, `.strict()`.
+- Give each coerced number of a list query `.openapi({ type: 'integer', minimum, maximum })` with the limits of the schema. zod-to-openapi documents a schema that accepts `null` as nullable, and `z.coerce.number()` turns `null` into `0`, so without it `limit` and `offset` are documented as `number | null`. The `type` replaces the generated schema, so the limits must be repeated.
 - Keep response schemas separate from input schemas ([Section 13](#13-openapi)).
 
 **SHOULD**
@@ -236,6 +237,7 @@ DTOs are coupled to the HTTP schemas by design today ([ARCHITECTURE.md §5](ARCH
 **SHOULD**
 - Normalize unique business values with `trim().toUpperCase()` before the check, and persist the normalized value.
 - Single-column unique keys: use a dedicated finder (`findByName`). Composite keys: `findMany({ ...completeKey }, { limit: 1 })`.
+- `update` of a composite key: when the input changes part of the key, load the current record with `findById` and check the key with the new values completed by the current ones. Checking with the input alone leaves `undefined` filters, which Prisma drops. A missing record skips the check, and `update()` still returns the 404 through `prismaCall`.
 - `update`: build `const data = { ...input }` and overwrite the normalized fields.
 - `list`: `return this.<module>Repository.findMany({}, params);`.
 - `update`/`delete`: rely on `prismaCall` for the 404 of a missing record (Prisma `P2025`); do not add an existence pre-check only to produce it.
@@ -249,6 +251,7 @@ DTOs are coupled to the HTTP schemas by design today ([ARCHITECTURE.md §5](ARCH
 - Only repository implementations import `prisma` from `@services/database/prisma/prisma.client`.
 - Wrap every write (`create`, `update`, `delete`) in `prismaCall`. It translates `P2002` and `P2003` → `ConflictError` and `P2025` → `NotFoundError`.
 - Register the token in `src/shared/container/index.ts` ([Section 11](#11-dependency-injection)).
+- Give `findMany` a total order: without `orderBy`, order by `createdAt` (by `id` in a model without timestamps), and after any other field add `id` as a tie-breaker. Without a total order PostgreSQL returns the rows in any order, so `offset` pages can repeat or skip records.
 
 **SHOULD**
 - Implement the standard contract: `create`, `findById`, `findMany(filters?, params?)`, `update`, `delete`, plus one finder per single-column unique key (`findByName`, `findByDescription`).
@@ -341,6 +344,8 @@ Details and flow: [ARCHITECTURE.md §11](ARCHITECTURE.md#11-openapi-documentatio
 - Write one spec per use case and cover all five use cases of a module.
 - Write route specs like `financial-fund-transaction.routes.spec.ts`: `controllerSpy` created with `vi.hoisted`, a stub returning 201 for `create` and 204 for `delete`, the router mounted at its real path.
 - When dropping a field from a fixture by destructuring, add `// eslint-disable-next-line @typescript-eslint/no-unused-vars`, as the existing specs do, so lint stays warning-free.
+- Make each case able to fail: a request rejected for one rule is valid for every other rule (send an unknown field next to a valid body), and values that a bug could swap differ (each foreign key has its own value).
+- When a call gains an optional argument, pass it in `toHaveBeenCalledWith` too (`undefined`). Vitest compares the number of arguments, so `fn(a, b, undefined)` does not match `toHaveBeenCalledWith(a, b)`.
 
 **AVOID**
 - `import 'reflect-metadata'` in specs; `src/test/setup.ts` already loads it.
@@ -436,7 +441,7 @@ Confirmed issues present in the committed code. Do not use them as references.
 |---|---|---|---|---|
 | 1 | Update schema without `.strict()` | `updateLedgerSchema` | Unknown keys are silently stripped instead of rejected. | `.strict()` + refine ([§7](#7-schemas-and-validation)). |
 | 2 | Uniqueness checked on the normalized value, original value persisted | `CreateFinancialCategoryUseCase` (`create(input)`), and its spec asserts it | The stored name differs from the checked one; its own update use case persists the normalized value. | Persist the normalized value ([§9](#9-use-cases)). |
-| 3 | Uniqueness filter with possibly `undefined` key fields | `UpdateFinancialFundUseCase`, `UpdateFinancialCategoryUseCase` (`ledgerId: input.ledgerId`), `CreateFinancialCategoryUseCase` without `parentCategoryId` | Prisma drops `undefined` filters, so the check spans all ledgers or parents. | Check the complete key. No established implementation for partial updates yet. |
+| 3 | Uniqueness filter with possibly `undefined` key fields | `UpdateFinancialFundUseCase`, `UpdateFinancialCategoryUseCase` (`ledgerId: input.ledgerId`), `CreateFinancialCategoryUseCase` without `parentCategoryId` | Prisma drops `undefined` filters, so the check spans all ledgers or parents. | Check the complete key; in `update`, complete it from the current record ([§9](#9-use-cases)). |
 | 4 | Cross-field rule validated only when all fields are in the PATCH | `UpdateFinancialFundTransactionUseCase` (credit/debit) | Updating one amount can produce a state the create rule forbids. | No established pattern yet; do not replicate. |
 | 5 | Unused `exists()` | All repositories | Dead code; 404 comes from `prismaCall`. | Omit unless a use case needs it ([§10](#10-repositories)). |
 | 6 | `Promise<X \| null>` on get-by-id | All 9 `GetById…UseCase` | They throw `NotFoundError` and never return `null`. | Declare `Promise<X>`. |
@@ -451,6 +456,8 @@ Confirmed issues present in the committed code. Do not use them as references.
 | 15 | Previous OpenAPI model | Replaced in PR #18 | Diverged from runtime. | [§13](#13-openapi). |
 | 16 | `./usecases/index`, `./../repositories/...` | `ledger.controller.ts`, the 9 create use cases | Inconsistent import paths. | [§15](#15-imports). |
 | 17 | Composite unique with nullable column | `FinancialCategory` (`parentCategoryId`) | Duplicates allowed at root level. | [§17](#17-database-and-prisma). |
+| 18 | List without a total order | All repositories: `orderBy` is `undefined` when the request has no `orderBy`, and no `id` tie-breaker | `offset` pages can repeat or skip records. | Default order and `id` tie-breaker ([§10](#10-repositories)). |
+| 19 | Coerced `limit` and `offset` without an OpenAPI `type` | All list query schemas | Documented as `number \| null`. | `.openapi({ type: 'integer', ... })` ([§7](#7-schemas-and-validation)). |
 
 ---
 
