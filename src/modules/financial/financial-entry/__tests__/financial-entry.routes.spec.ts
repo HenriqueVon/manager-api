@@ -178,6 +178,23 @@ describe('FinancialEntry routes', () => {
       expect(controllerSpy).not.toHaveBeenCalled();
     });
 
+    it('should return 400 when amountPaid is negative', async () => {
+      const response = await request(app)
+        .post('/financial/entries')
+        .send({ ...validBody, amountPaid: -1 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('Invalid body');
+      expect(
+        response.body.issues.some(
+          (issue: any) =>
+            issue.path === 'amountPaid' &&
+            issue.message === 'AmountPaid must be greater than or equal to 0'
+        )
+      ).toBe(true);
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+
     it('should return 400 when extra fields are provided', async () => {
       const response = await request(app)
         .post('/financial/entries')
@@ -257,6 +274,51 @@ describe('FinancialEntry routes', () => {
 
       const requestReceived = controllerSpy.mock.calls[0][1] as Request;
       expect(requestReceived.body).toEqual({ paymentDate: null });
+    });
+
+    it('should return 400 when amount is negative', async () => {
+      const response = await request(app)
+        .patch(`/financial/entries/${validCuid}`)
+        .send({ amount: -1 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('Invalid body');
+      expect(
+        response.body.issues.some(
+          (issue: any) =>
+            issue.path === 'amount' &&
+            issue.message === 'Amount must be greater than or equal to 0'
+        )
+      ).toBe(true);
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when amountPaid is negative', async () => {
+      const response = await request(app)
+        .patch(`/financial/entries/${validCuid}`)
+        .send({ amountPaid: -1 });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('Invalid body');
+      expect(
+        response.body.issues.some(
+          (issue: any) =>
+            issue.path === 'amountPaid' &&
+            issue.message === 'AmountPaid must be greater than or equal to 0'
+        )
+      ).toBe(true);
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+
+    it('should accept zero for amount and amountPaid', async () => {
+      const response = await request(app)
+        .patch(`/financial/entries/${validCuid}`)
+        .send({ amount: 0, amountPaid: 0 });
+
+      expect(response.status).toBe(200);
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+      expect(requestReceived.body).toEqual({ amount: 0, amountPaid: 0 });
     });
 
     it('should return 400 when id is invalid', async () => {
