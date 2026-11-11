@@ -1,8 +1,10 @@
 import { z } from 'zod';
-import { createFinancialPaymentMethodSchema } from './create-financial-payment-method.schema';
+import { dateTimeString } from '@shared/schemas/output.schema';
 
-export const financialPaymentMethodSchema = createFinancialPaymentMethodSchema.extend({
+// Response shape: the Prisma `FinancialPaymentMethod` model as serialized to JSON
+export const financialPaymentMethodSchema = z.object({
   id        : z.string(),
-  createdAt : z.string().datetime(),
-  updatedAt : z.string().datetime(),
-});
+  name      : z.string(),
+  createdAt : dateTimeString,
+  updatedAt : dateTimeString,
+}).openapi('FinancialPaymentMethod');

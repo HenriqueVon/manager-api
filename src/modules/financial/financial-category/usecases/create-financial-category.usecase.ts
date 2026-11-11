@@ -13,11 +13,12 @@ export class CreateFinancialCategoryUseCase {
   ) {}
 
   async execute(input: CreateFinancialCategoryDto): Promise<FinancialCategory> {
+    const name = input.name.trim().toUpperCase();
     const existingCategory = await this.financialCategoryRepository.findMany(
       {
         ledgerId         : input.ledgerId,
         parentCategoryId : input.parentCategoryId,
-        name             : input.name.trim().toUpperCase(),
+        name             : name,
       },
       { limit: 1 }
     );
@@ -28,6 +29,15 @@ export class CreateFinancialCategoryUseCase {
       );
     }
 
-    return this.financialCategoryRepository.create(input);
+    if (input.parentCategoryId) {
+      const parent = await this.financialCategoryRepository.findById(input.parentCategoryId);
+
+      // A missing parent is left to the foreign key, which prismaCall translates to 409.
+      if (parent && parent.type !== input.type) {
+        throw new ConflictError('A financial category must have the same type as its parent category.');
+      }
+    }
+
+    return this.financialCategoryRepository.create({ ...input, name });
   }
 }

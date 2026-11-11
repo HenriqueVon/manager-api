@@ -2,4 +2,4 @@ import { paginatedResponseSchema } from '@shared/schemas/paginated-response.sche
 import { financialBankAccountSchema } from './financial-bank-account.schema';
 
 export const listFinancialBankAccountResponseSchema =
-  paginatedResponseSchema(financialBankAccountSchema);
+  paginatedResponseSchema(financialBankAccountSchema).openapi('ListFinancialBankAccountResponse');

@@ -1,8 +1,12 @@
 import { z } from 'zod';
-import { createLedgerSchema } from './create-ledger.schema';
+import { LedgerType } from '@prisma/client';
+import { dateTimeString } from '@shared/schemas/output.schema';
 
-export const ledgerSchema = createLedgerSchema.extend({
+// Response shape: the Prisma `Ledger` model as serialized to JSON
+export const ledgerSchema = z.object({
   id        : z.string(),
-  createdAt : z.string().datetime(),
-  updatedAt : z.string().datetime(),
-});
+  name      : z.string(),
+  type      : z.enum(LedgerType),
+  createdAt : dateTimeString,
+  updatedAt : dateTimeString,
+}).openapi('Ledger');

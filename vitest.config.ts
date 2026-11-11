@@ -20,6 +20,8 @@ export default defineConfig({
       '@modules': resolve(__dirname, 'src/modules'),
       '@services': resolve(__dirname, 'src/services'),
       '@shared': resolve(__dirname, 'src/shared'),
+      '@config': resolve(__dirname, 'src/config'),
+      '@docs': resolve(__dirname, 'src/docs'),
     },
   },
 });

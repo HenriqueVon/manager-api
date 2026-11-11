@@ -1,8 +1,10 @@
 import { z } from 'zod';
-import { createFinancialDescriptionSchema } from './create-financial-description.schema';
+import { dateTimeString } from '@shared/schemas/output.schema';
 
-export const financialDescriptionSchema = createFinancialDescriptionSchema.extend({
-  id        : z.string(),
-  createdAt : z.string().datetime(),
-  updatedAt : z.string().datetime(),
-});
+// Response shape: the Prisma `FinancialDescription` model as serialized to JSON
+export const financialDescriptionSchema = z.object({
+  id          : z.string(),
+  description : z.string(),
+  createdAt   : dateTimeString,
+  updatedAt   : dateTimeString,
+}).openapi('FinancialDescription');

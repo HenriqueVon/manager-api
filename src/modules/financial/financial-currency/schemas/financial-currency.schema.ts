@@ -1,8 +1,11 @@
 import { z } from 'zod';
-import { createFinancialCurrencySchema } from './create-financial-currency.schema';
+import { dateTimeString } from '@shared/schemas/output.schema';
 
-export const financialCurrencySchema = createFinancialCurrencySchema.extend({
+// Response shape: the Prisma `FinancialCurrency` model as serialized to JSON
+export const financialCurrencySchema = z.object({
   id        : z.string(),
-  createdAt : z.string().datetime(),
-  updatedAt : z.string().datetime(),
-});
+  name      : z.string(),
+  symbol    : z.string(),
+  createdAt : dateTimeString,
+  updatedAt : dateTimeString,
+}).openapi('FinancialCurrency');
