@@ -99,7 +99,7 @@ A node of the chart of accounts, used to classify movements, e.g. Supermarket un
 An amount to pay or to receive, with a due date.
 
 - *Enforced:* `type` is `PAYABLE` or `RECEIVABLE`.
-- *Enforced:* `amount` ≥ 0 on create. Known gap: update accepts a negative `amount`, and `amountPaid` accepts negative values ([issue #34](https://github.com/HenriqueVon/manager-api/issues/34)).
+- *Enforced:* `amount` ≥ 0 and `amountPaid` ≥ 0, on create and update (`400` otherwise).
 - Belongs to a ledger and references a description, a fund and a category. *Enforced:* the fund and the category belong to the entry's ledger.
 - *Stored only:* `dueDate`, `paymentDate` (optional), `amountPaid` (default 0), `isMonthly`, `additionalDescription`. No rule links payment date, paid amount and amount, and `isMonthly` triggers no recurrence.
 

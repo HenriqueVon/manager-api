@@ -17,8 +17,8 @@ export const updateFinancialEntrySchema = z
       .transform((value) => new Date(`${value}T00:00:00.000Z`))
       .optional()
       .nullable(),    
-    amount                 : z.number().optional(),
-    amountPaid             : z.number().optional(),
+    amount                 : z.number().min(0, 'Amount must be greater than or equal to 0').optional(),
+    amountPaid             : z.number().min(0, 'AmountPaid must be greater than or equal to 0').optional(),
     additionalDescription  : z.string().min(2, 'AdditionalDescription must have at least 2 characters').max(100, 'AdditionalDescription must have at most 100 characters').optional(),
     isMonthly              : z.boolean().optional(),
     ledgerId               : z.string().optional(),
