@@ -299,7 +299,7 @@ DTOs are coupled to the HTTP schemas by design today ([ARCHITECTURE.md §5](ARCH
 **AVOID**
 - `try/catch` in use cases or controllers to translate Prisma errors ad hoc.
 
-**Known gap.** Malformed JSON bodies currently return 500 (the body parser's 400 is ignored by `errorHandler`). Do not work around it per module.
+**Body parser errors.** `errorHandler` translates malformed JSON to 400 `BAD_REQUEST` and a body above the limit to 413 `PAYLOAD_TOO_LARGE`. Do not handle them per module.
 
 ---
 
@@ -447,17 +447,16 @@ Confirmed issues present in the committed code. Do not use them as references.
 | 6 | `Promise<X \| null>` on get-by-id | All 9 `GetById…UseCase` | They throw `NotFoundError` and never return `null`. | Declare `Promise<X>`. |
 | 7 | Debug `console.log` | `FinancialFundTransactionController.list` | Lint warning; leaks query data to logs. | No `console.log` ([§16](#16-formatting-and-static-analysis)). |
 | 8 | Treating the request child container as request-scoped | `requestContainerMiddleware` comments | Nothing is registered with a scoped lifecycle. | Do not depend on per-request instances ([§11](#11-dependency-injection)). |
-| 9 | 500 for malformed JSON bodies | `errorHandler` ignores the body parser's 400 | Accidental behavior, documented as `InternalError`. | Known gap ([§12](#12-error-handling)); no ad-hoc workarounds. |
-| 10 | `new AuthService()` inside middleware | `authMiddleware` | Bypasses DI. | Constructor injection ([§11](#11-dependency-injection)). |
-| 11 | `process.env` outside `config/env.ts` | `prisma.client.ts` | Skips the required/optional checks. | `env` from `config/env.ts` ([§18](#18-environment-variables)). |
-| 12 | Route specs mounted at non-real paths; redundant `reflect-metadata` imports | Currency, description, payment-method route specs; 27 use case specs | Inconsistent; the import is already in the setup. | [§14](#14-tests). |
-| 13 | `_amountDebit` assigned and unused without the disable comment | `financial-fund-transaction.routes.spec.ts` | Produces a lint warning. | [§14](#14-tests). |
-| 14 | Migration name typo | `add_collum_financial_bank_account_id_…` | Typo. | `add_column_…`. |
-| 15 | Previous OpenAPI model | Replaced in PR #18 | Diverged from runtime. | [§13](#13-openapi). |
-| 16 | `./usecases/index`, `./../repositories/...` | `ledger.controller.ts`, the 9 create use cases | Inconsistent import paths. | [§15](#15-imports). |
-| 17 | Composite unique with nullable column | `FinancialCategory` (`parentCategoryId`) | Duplicates allowed at root level. | [§17](#17-database-and-prisma). |
-| 18 | List without a total order | All repositories: `orderBy` is `undefined` when the request has no `orderBy`, and no `id` tie-breaker | `offset` pages can repeat or skip records. | Default order and `id` tie-breaker ([§10](#10-repositories)). |
-| 19 | Coerced `limit` and `offset` without an OpenAPI `type` | All list query schemas | Documented as `number \| null`. | `.openapi({ type: 'integer', ... })` ([§7](#7-schemas-and-validation)). |
+| 9 | `new AuthService()` inside middleware | `authMiddleware` | Bypasses DI. | Constructor injection ([§11](#11-dependency-injection)). |
+| 10 | `process.env` outside `config/env.ts` | `prisma.client.ts` | Skips the required/optional checks. | `env` from `config/env.ts` ([§18](#18-environment-variables)). |
+| 11 | Route specs mounted at non-real paths; redundant `reflect-metadata` imports | Currency, description, payment-method route specs; 27 use case specs | Inconsistent; the import is already in the setup. | [§14](#14-tests). |
+| 12 | `_amountDebit` assigned and unused without the disable comment | `financial-fund-transaction.routes.spec.ts` | Produces a lint warning. | [§14](#14-tests). |
+| 13 | Migration name typo | `add_collum_financial_bank_account_id_…` | Typo. | `add_column_…`. |
+| 14 | Previous OpenAPI model | Replaced in PR #18 | Diverged from runtime. | [§13](#13-openapi). |
+| 15 | `./usecases/index`, `./../repositories/...` | `ledger.controller.ts`, the 9 create use cases | Inconsistent import paths. | [§15](#15-imports). |
+| 16 | Composite unique with nullable column | `FinancialCategory` (`parentCategoryId`) | Duplicates allowed at root level. | [§17](#17-database-and-prisma). |
+| 17 | List without a total order | All repositories: `orderBy` is `undefined` when the request has no `orderBy`, and no `id` tie-breaker | `offset` pages can repeat or skip records. | Default order and `id` tie-breaker ([§10](#10-repositories)). |
+| 18 | Coerced `limit` and `offset` without an OpenAPI `type` | All list query schemas | Documented as `number \| null`. | `.openapi({ type: 'integer', ... })` ([§7](#7-schemas-and-validation)). |
 
 ---
 

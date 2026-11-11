@@ -419,7 +419,7 @@ References between ledger-scoped records use **composite foreign keys** that inc
 
 ## 9. Error Handling
 
-There are four distinct runtime behaviors.
+There are five distinct runtime behaviors.
 
 ### Validation errors
 
@@ -428,13 +428,22 @@ There are four distinct runtime behaviors.
 
 ### AppError
 
-- Defined in [`src/shared/errors/app-error.ts`](../src/shared/errors/app-error.ts): `AppError(statusCode, message, code)` and its subclasses `BadRequestError` (400), `Unauthorized` (401), `Forbidden` (403), `NotFoundError` (404), `ConflictError` (409).
+- Defined in [`src/shared/errors/app-error.ts`](../src/shared/errors/app-error.ts): `AppError(statusCode, message, code)` and its subclasses `BadRequestError` (400), `Unauthorized` (401), `Forbidden` (403), `NotFoundError` (404), `ConflictError` (409), `PayloadTooLargeError` (413).
 - Where they are thrown:
   - `Unauthorized` / `Forbidden`: API key middleware and `AuthService`.
   - `NotFoundError`: the nine get-by-id use cases, and `prismaCall` (P2025, update or delete of a missing record).
   - `ConflictError`: uniqueness checks in create/update use cases, and `prismaCall` (P2002 unique violation, P2003 foreign-key violation).
-  - `BadRequestError`: the fund-transaction create/update use cases.
+  - `BadRequestError`: the fund-transaction create/update use cases, and `errorHandler` for malformed JSON bodies.
+  - `PayloadTooLargeError`: `errorHandler`, for a JSON body above the body parser's limit.
 - [`errorHandler`](../src/shared/http/middlewares/error-handlers.middleware.ts) logs with `console.warn` and responds `err.statusCode` with `{ message, code }`.
+
+### Body parser errors
+
+- `express.json()` raises errors that are not `AppError`s but carry a `type`. `errorHandler` translates two of them before the `AppError` branch:
+  - `entity.parse.failed` (malformed JSON) → `400 { message: 'Malformed JSON body', code: 'BAD_REQUEST' }`;
+  - `entity.too.large` → `413 { message: 'Payload too large', code: 'PAYLOAD_TOO_LARGE' }`.
+- The parser's own message is not returned, because it can echo part of the body.
+- Other parser errors (e.g. unsupported charset or encoding) are still unexpected errors (500).
 
 ### Prisma errors
 
@@ -445,7 +454,7 @@ There are four distinct runtime behaviors.
 
 - Any non-`AppError` is logged with `console.error`.
 - Response: `500 { message: 'Internal server error' }`.
-- This includes Prisma errors other than P2002/P2003/P2025, malformed JSON bodies (the `express.json()` parse error is not an `AppError`) and network failures of the `fetch` call in `AuthService`.
+- This includes Prisma errors other than P2002/P2003/P2025, body parser errors other than the two above and network failures of the `fetch` call in `AuthService`.
 
 Use cases for update and delete do not check that the record exists before calling the repository; the 404 for a missing record comes from `prismaCall` (P2025).
 
@@ -624,29 +633,25 @@ Listed factually. No fixes are proposed in this document.
 5. `additionalDescription` is required in the create schemas for entries and fund transactions, but nullable in the database.
 6. `updateLedgerSchema` lacks `.strict()`, so unknown keys are stripped instead of rejected.
 
-**Errors**
-
-7. Malformed JSON bodies produce 500: `errorHandler` ignores the 400 status set by the JSON body parser. The OpenAPI `InternalError` response describes this behavior.
-
 **Dependency injection and wiring**
 
-8. The per-request child container has no scoped registrations, so it provides no per-request isolation.
-9. `AuthService`, the Prisma client and configuration are outside the DI container. `prisma.client.ts` reads `process.env.DATABASE_URL` directly rather than `env`.
-10. The composition root lives in `src/shared/` and imports every module.
+7. The per-request child container has no scoped registrations, so it provides no per-request isolation.
+8. `AuthService`, the Prisma client and configuration are outside the DI container. `prisma.client.ts` reads `process.env.DATABASE_URL` directly rather than `env`.
+9. The composition root lives in `src/shared/` and imports every module.
 
 **Runtime behavior**
 
-11. `GET /health` is registered after `errorHandler` and behind the API key and authentication middleware.
-12. `AUTH_API_URL` is required by `config/env.ts` but is not listed in `serverless.yml` `provider.environment` or in the deploy jobs' environment.
+10. `GET /health` is registered after `errorHandler` and behind the API key and authentication middleware.
+11. `AUTH_API_URL` is required by `config/env.ts` but is not listed in `serverless.yml` `provider.environment` or in the deploy jobs' environment.
 
 **Code-level oddities**
 
-13. All nine get-by-id use cases declare `Promise<X | null>` but never return `null`.
-14. `exists()` is declared and implemented in all repositories but is never called by application code (the OpenAPI contract spec only mocks it). `IdParamsDto` is declared but unused. `req.requestId` is set but never read.
-15. List use cases always pass empty filters, so the `findMany` filter support is not reachable through the HTTP API.
-16. `FinancialFundTransactionController.list` contains a `console.log`, which ESLint reports as a warning.
-17. `package.json` lists the npm package `crypto` as a dependency, while the code imports `crypto` (resolved to the Node built-in). `typescript-eslint` is listed under `dependencies`.
-18. The repository `README.md` contains only the project title.
+12. All nine get-by-id use cases declare `Promise<X | null>` but never return `null`.
+13. `exists()` is declared and implemented in all repositories but is never called by application code (the OpenAPI contract spec only mocks it). `IdParamsDto` is declared but unused. `req.requestId` is set but never read.
+14. List use cases always pass empty filters, so the `findMany` filter support is not reachable through the HTTP API.
+15. `FinancialFundTransactionController.list` contains a `console.log`, which ESLint reports as a warning.
+16. `package.json` lists the npm package `crypto` as a dependency, while the code imports `crypto` (resolved to the Node built-in). `typescript-eslint` is listed under `dependencies`.
+17. The repository `README.md` contains only the project title.
 
 ---
 
