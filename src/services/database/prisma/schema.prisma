@@ -143,6 +143,7 @@ model FinancialCategory {
   financialEntries           FinancialEntry[]
   financialFundTransactions FinancialFundTransaction[]
 
+  // The database also has CHECK (parent_category_id IS NULL OR parent_category_id <> id), declared only in the migration.
   @@unique([ledgerId, parentCategoryId, name])
 
   // Target of ledger-scoped composite foreign keys

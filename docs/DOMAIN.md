@@ -91,7 +91,8 @@ A node of the chart of accounts, used to classify movements, e.g. Supermarket un
 - *Enforced:* `name` is unique among siblings (same ledger and parent).
   - Known gaps, listed in [ARCHITECTURE.md §15](ARCHITECTURE.md#15-known-architectural-inconsistencies): duplicate root names are not blocked by the database, and create stores the non-normalized name.
 - *Stored only:* `balance` (decimal, default 0).
-- *Open:* whether the parent must have the same `type`; self-parent and cycles are not prevented yet.
+- *Enforced:* a category cannot be its own parent (database `CHECK`) or be moved under one of its descendants (cycle). A subcategory has the same `type` as its parent: creating, moving or changing the `type` of a category that would break this is rejected (`409`).
+  - The cycle and `type` checks are not atomic with the write. Rows created before this rule may already break the `type` rule; no data migration was done.
 
 ### 2.7 Entry (Contas a pagar e receber)
 
@@ -130,7 +131,6 @@ Decisions not taken yet. Do not implement an answer without a decision.
 | Should bank account names be unique per ledger, like funds? | Unique across all ledgers |
 | Where is the payment method used (e.g. on entries)? | Not referenced by any record |
 | Must `amountPaid` ≤ `amount` on entries? | Not checked |
-| Must a subcategory have the same `type` as its parent? | Not checked |
 | What does `isMonthly` imply (recurrence)? | Stored only |
 | Is `additionalDescription` required? | Required by the API on create, nullable in the database |
 | Does the ledger `type` restrict currencies? | No restriction |

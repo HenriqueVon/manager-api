@@ -25,13 +25,13 @@ const financialCategoryInputExample = {
   type             : 'EXPENSE',
   balance          : 0,
   ledgerId         : 'cm1234567890abcdefghijkl',
-  parentCategoryId : 'cm1234567890abcdefghijkl',
+  parentCategoryId : 'cm0987654321zyxwvutsrqpo',
 };
 
 const financialCategoryExample = {
   id               : 'cm1234567890abcdefghijkl',
   ledgerId         : 'cm1234567890abcdefghijkl',
-  parentCategoryId : 'cm1234567890abcdefghijkl',
+  parentCategoryId : 'cm0987654321zyxwvutsrqpo',
   name             : 'SUPERMARKET',
   type             : 'EXPENSE',
   balance          : '0',
