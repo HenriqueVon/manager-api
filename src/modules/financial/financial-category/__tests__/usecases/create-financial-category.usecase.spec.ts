@@ -9,6 +9,7 @@ describe('CreateFinancialCategoryUseCase', () => {
 
   beforeEach(() => {
     repo = {
+      findById : vi.fn(),
       findMany : vi.fn(),
       create   : vi.fn(),
     } as unknown as IFinancialCategoryRepository;
@@ -66,6 +67,7 @@ describe('CreateFinancialCategoryUseCase', () => {
       items : [],
       total : 0,
     });
+    (repo.findById as any).mockResolvedValue({ id: 'parent-category-1', type: 'EXPENSE' });
 
     const createdFinancialCategory = {
       id               : 'category-2',
@@ -143,5 +145,49 @@ describe('CreateFinancialCategoryUseCase', () => {
     );
 
     expect(repo.create).not.toHaveBeenCalled();
+  });
+
+  it('should throw ConflictError when the parent has another type', async () => {
+    (repo.findMany as any).mockResolvedValue({
+      items : [],
+      total : 0,
+    });
+    (repo.findById as any).mockResolvedValue({ id: 'parent-category-1', type: 'INCOME' });
+
+    const input = {
+      ledgerId         : 'ledger-1',
+      parentCategoryId : 'parent-category-1',
+      name             : 'SUPERMARKET',
+      type             : 'EXPENSE',
+      balance          : 0,
+    } as any;
+
+    await expect(sut.execute(input)).rejects.toMatchObject({
+      message: 'A financial category must have the same type as its parent category.',
+    });
+
+    expect(repo.findById).toHaveBeenCalledWith('parent-category-1');
+    expect(repo.create).not.toHaveBeenCalled();
+  });
+
+  it('should leave a missing parent to the foreign key', async () => {
+    (repo.findMany as any).mockResolvedValue({
+      items : [],
+      total : 0,
+    });
+    (repo.findById as any).mockResolvedValue(null);
+    (repo.create as any).mockResolvedValue({ id: 'category-2' });
+
+    const input = {
+      ledgerId         : 'ledger-1',
+      parentCategoryId : 'missing-parent',
+      name             : 'SUPERMARKET',
+      type             : 'EXPENSE',
+      balance          : 0,
+    } as any;
+
+    await sut.execute(input);
+
+    expect(repo.create).toHaveBeenCalledWith(input);
   });
 });

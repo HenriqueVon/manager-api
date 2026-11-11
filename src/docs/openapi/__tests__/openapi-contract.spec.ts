@@ -78,7 +78,8 @@ function toPrismaRecord(model: string, example: Record<string, unknown>) {
 function repositoryMock(record: Record<string, unknown>) {
   return {
     create            : async () => record,
-    findById          : async () => record,
+    // Any other id finds nothing, e.g. the parent category of an example
+    findById          : async (id: string) => (id === record.id ? record : null),
     findByName        : async () => null,
     findByDescription : async () => null,
     // List use cases pass no filters; uniqueness checks pass filters and must find nothing

@@ -286,7 +286,7 @@ DTOs are coupled to the HTTP schemas by design today ([ARCHITECTURE.md §5](ARCH
 - Throw `AppError` subclasses from `@shared/errors/app-error` for expected failures:
   - `BadRequestError` (400) for business-rule violations;
   - `NotFoundError` (404) when a requested record does not exist;
-  - `ConflictError` (409) for unique-value conflicts (and, via `prismaCall`, foreign-key violations);
+  - `ConflictError` (409) for unique-value conflicts, category hierarchy violations (self-parent, cycle, parent with another `type`) and, via `prismaCall`, foreign-key violations;
   - `Unauthorized` (401) and `Forbidden` (403) are thrown by the authentication layer, not by use cases.
 - Let errors propagate. Only `validateRequest` (Zod errors) and `errorHandler` (everything else) write error bodies.
 - Leave request-shape validation to Zod; use cases validate business rules only.

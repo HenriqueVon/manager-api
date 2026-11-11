@@ -367,6 +367,14 @@ References between ledger-scoped records use **composite foreign keys** that inc
 - References to global catalogs (currencies, descriptions) remain single-column foreign keys.
 - The use cases do not check ledger membership themselves. Violations surface as Prisma `P2003`, which `prismaCall` translates to 409 ([Section 9](#9-error-handling)).
 
+### Category hierarchy integrity
+
+- The database blocks a category that is its own parent with `CHECK (parent_category_id IS NULL OR parent_category_id <> id)`. Prisma has no native CHECK, so the constraint exists only in the migration `add_category_no_self_parent_check`.
+- Cycles longer than one level and the parent/child `type` rule are checked by the category use cases (`409`):
+  - `UpdateFinancialCategoryUseCase` walks from the new parent up to the root with `findById` and rejects reaching the category itself. Changing `type` is rejected while subcategories of another type exist.
+  - `CreateFinancialCategoryUseCase` and `UpdateFinancialCategoryUseCase` reject a parent with another `type`.
+  - These checks are separate reads before the write, not atomic with it: two concurrent re-parentings can still create a cycle. Use a transaction with row locks or a trigger if that becomes real.
+
 ### Prisma models as application entities
 
 - There is no separate domain or entity layer.
