@@ -2,8 +2,9 @@ import { inject, injectable } from 'tsyringe';
 import { Ledger } from '@prisma/client';
 import { ILedgerRepository } from '../repositories/iledger.repository';
 import { LEDGER_REPOSITORY } from '../repositories/ledger.tokens';
+import { ListLedgerFiltersDto } from '../dtos';
 import { ListParamsDto } from '@shared/dtos/list-params.dto';
-import { PaginatedResponseDto } from '@shared/dtos/paginated-response.dto'; 
+import { PaginatedResponseDto } from '@shared/dtos/paginated-response.dto';
 
 @injectable()
 export class ListLedgerUseCase {
@@ -12,8 +13,10 @@ export class ListLedgerUseCase {
     private readonly ledgerRepository: ILedgerRepository
   ) {}
 
-  async execute(params: ListParamsDto): Promise<PaginatedResponseDto<Ledger>> {
-    return this.ledgerRepository.findMany({}, params);
+  async execute(
+    params: ListParamsDto,
+    { search, ...filters }: ListLedgerFiltersDto = {}
+  ): Promise<PaginatedResponseDto<Ledger>> {
+    return this.ledgerRepository.findMany({ ...filters, name: filters.name?.trim().toUpperCase() }, params, search);
   }
-
 }

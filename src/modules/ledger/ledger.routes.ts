@@ -18,22 +18,25 @@ router.get(
 );
 
 router.post(
-  '/', 
+  '/',
   validateRequest({ body: createLedgerSchema }),
   controllerAdapter(LedgerController, 'create')
 );
+
 router.get(
-  '/:id', 
+  '/:id',
   validateRequest({ params: idParamsSchema }),
   controllerAdapter(LedgerController, 'getById')
 );
+
 router.patch(
-  '/:id', 
+  '/:id',
   validateRequest({ params: idParamsSchema, body: updateLedgerSchema }),
   controllerAdapter(LedgerController, 'update')
 );
+
 router.delete(
-  '/:id', 
+  '/:id',
   validateRequest({ params: idParamsSchema }),
   controllerAdapter(LedgerController, 'delete')
 );
