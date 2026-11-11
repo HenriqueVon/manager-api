@@ -643,7 +643,8 @@ Current runtime behavior:
 | Missing `x-api-key` / missing or invalid `Authorization` / token rejected by auth API | `errorHandler` | 401 | `{ message, code: 'UNAUTHORIZED' }` |
 | Wrong `x-api-key` | `errorHandler` | 403 | `{ message: 'Invalid API key', code: 'FORBIDDEN' }` |
 | Prisma errors other than `P2002`/`P2003`/`P2025` | `errorHandler` (logs with `console.error`) | **500** | `{ message: 'Internal server error' }` |
-| Malformed JSON body (`express.json()` parse error) | `errorHandler` (ignores the parser's 400 status) | **500** | `{ message: 'Internal server error' }` |
+| Malformed JSON body (`express.json()` parse error `entity.parse.failed`) | `errorHandler` (translates it to `BadRequestError`) | 400 | `{ message: 'Malformed JSON body', code: 'BAD_REQUEST' }` |
+| JSON body above the parser's limit (`entity.too.large`) | `errorHandler` (translates it to `PayloadTooLargeError`) | 413 | `{ message: 'Payload too large', code: 'PAYLOAD_TOO_LARGE' }` |
 | Network failure calling the auth API | `errorHandler` | 500 | `{ message: 'Internal server error' }` |
 | Any other unexpected error | `errorHandler` | 500 | `{ message: 'Internal server error' }` |
 | Unknown route | No custom 404 handler (after API key and auth checks) | Express default 404 | Express default |
@@ -653,7 +654,7 @@ Practical consequences today:
 - A body with a non-existent foreign-key id returns **409** `{ message: 'Operation conflicts with related records', code: 'CONFLICT' }` (Prisma `P2003`).
 - A body that references a fund, category or bank account of **another ledger** is rejected by the database and returns **409**. The same happens when a PATCH changes `ledgerId` so that the references no longer match, or moves a referenced fund, category or bank account to another ledger ([ARCHITECTURE.md §7](ARCHITECTURE.md#7-data-and-persistence)).
 - Deleting a record still referenced by others (FK `RESTRICT`), including a category that has subcategories, returns **409**.
-- A malformed JSON body returns **500**, not 400.
+- Body parser errors other than the two above (e.g. unsupported charset) still return **500**.
 
 Throw `AppError` subclasses from use cases; controllers do not catch errors. `controllerAdapter` forwards them with `next(err)`.
 

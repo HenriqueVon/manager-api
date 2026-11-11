@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Body produced by errorHandler for AppError subclasses
 export const appErrorResponseSchema = z.object({
   message : z.string(),
-  code    : z.enum(['BAD_REQUEST', 'UNAUTHORIZED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT']),
+  code    : z.enum(['BAD_REQUEST', 'UNAUTHORIZED', 'FORBIDDEN', 'NOT_FOUND', 'CONFLICT', 'PAYLOAD_TOO_LARGE']),
 });
 
 // Body produced by validateRequest when params, query or body fail Zod validation

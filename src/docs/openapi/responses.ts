@@ -12,6 +12,7 @@ type ResponseName =
   | 'Forbidden'
   | 'NotFound'
   | 'Conflict'
+  | 'PayloadTooLarge'
   | 'InternalError';
 
 openApiRegistry.register('AppErrorResponse', appErrorResponseSchema);
@@ -37,8 +38,8 @@ function registerJsonResponse(
 
 registerJsonResponse(
   'ValidationError',
-  'Request params, query or body failed validation',
-  schemaRef('ValidationErrorResponse')
+  'Request validation failed (ValidationErrorResponse) or the JSON body is malformed (AppErrorResponse with code BAD_REQUEST)',
+  { oneOf: [schemaRef('ValidationErrorResponse'), schemaRef('AppErrorResponse')] }
 );
 
 registerJsonResponse(
@@ -72,8 +73,14 @@ registerJsonResponse(
 );
 
 registerJsonResponse(
+  'PayloadTooLarge',
+  'The JSON body is larger than the limit of the body parser',
+  schemaRef('AppErrorResponse')
+);
+
+registerJsonResponse(
   'InternalError',
-  'Unexpected error. Currently also returned for malformed JSON bodies',
+  'Unexpected error',
   schemaRef('InternalErrorResponse')
 );
 
@@ -83,5 +90,6 @@ export const responseRef = (name: ResponseName) => ({ $ref: `#/components/respon
 export const globalErrorResponses = {
   401 : responseRef('Unauthorized'),
   403 : responseRef('Forbidden'),
+  413 : responseRef('PayloadTooLarge'),
   500 : responseRef('InternalError'),
 };
