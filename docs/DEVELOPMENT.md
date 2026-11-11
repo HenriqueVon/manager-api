@@ -894,6 +894,7 @@ When adding a required variable, check all four places.
 13. **Pushing to `develop` or `main` deploys.** The workflow deploys on push to those branches after validation.
 14. **New env vars missing in deployment.** See the `AUTH_API_URL` example in [Section 17](#17-adding-a-new-environment-variable).
 15. **Ignoring the value returned by `openApiRegistry.register()`.** Passing the original schema to `registerPath` inlines it and leaves an unused component; `openapi-document.spec.ts` fails on unused components.
+16. **OpenAPI examples that break a business rule.** `openapi-contract.spec.ts` sends each documented example through the real use cases, with a repository mock whose `findById` answers only for the example's own id. An example that a use case rejects (e.g. a category whose `parentCategoryId` equals its own id) makes the contract spec fail with that error.
 
 ---
 
