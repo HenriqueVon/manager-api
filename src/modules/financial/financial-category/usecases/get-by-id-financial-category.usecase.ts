@@ -11,7 +11,7 @@ export class GetByIdFinancialCategoryUseCase {
     private readonly financialCategoryRepository: IFinancialCategoryRepository
   ) {}
 
-  async execute(id: string): Promise<FinancialCategory | null> {
+  async execute(id: string): Promise<FinancialCategory> {
     const financialCategory = await this.financialCategoryRepository.findById(id);
 
     if (!financialCategory) {

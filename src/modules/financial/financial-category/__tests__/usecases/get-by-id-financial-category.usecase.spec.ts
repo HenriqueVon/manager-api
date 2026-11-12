@@ -1,12 +1,14 @@
-import 'reflect-metadata';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FinancialCategory } from '@prisma/client';
 import { GetByIdFinancialCategoryUseCase } from '../../usecases/get-by-id-financial-category.usecase';
-import type { IFinancialCategoryRepository } from '../../repositories/ifinancial-category.repository';
-import { NotFoundError } from '@shared/errors/app-error';
+import { IFinancialCategoryRepository } from '../../repositories/ifinancial-category.repository';
 
 describe('GetByIdFinancialCategoryUseCase', () => {
   let repo: IFinancialCategoryRepository;
   let sut: GetByIdFinancialCategoryUseCase;
+
+  const id = 'record-1';
+  const record = { id } as unknown as FinancialCategory;
 
   beforeEach(() => {
     repo = {
@@ -16,32 +18,18 @@ describe('GetByIdFinancialCategoryUseCase', () => {
     sut = new GetByIdFinancialCategoryUseCase(repo);
   });
 
-  it('should return financial category when it exists', async () => {
-    const financialCategory = {
-      id               : 'category-1',
-      name             : 'SUPERMARKET',
-      type             : 'EXPENSE',
-      balance          : 100,
-      ledgerId         : 'ledger-1',
-      parentCategoryId : 'parent-category-1',
-    };
+  it('should return the financial category', async () => {
+    vi.mocked(repo.findById).mockResolvedValue(record);
 
-    (repo.findById as any).mockResolvedValue(financialCategory);
+    const result = await sut.execute(id);
 
-    const result = await sut.execute('category-1');
-
-    expect(repo.findById).toHaveBeenCalledTimes(1);
-    expect(repo.findById).toHaveBeenCalledWith('category-1');
-    expect(result).toBe(financialCategory);
+    expect(repo.findById).toHaveBeenCalledWith(id);
+    expect(result).toBe(record);
   });
 
-  it('should throw NotFoundError when financial category does not exist', async () => {
-    (repo.findById as any).mockResolvedValue(null);
+  it('should throw NotFoundError when the financial category does not exist', async () => {
+    vi.mocked(repo.findById).mockResolvedValue(null);
 
-    await expect(
-      sut.execute('category-1')
-    ).rejects.toBeInstanceOf(NotFoundError);
-
-    expect(repo.findById).toHaveBeenCalledWith('category-1');
+    await expect(sut.execute(id)).rejects.toMatchObject({ statusCode: 404 });
   });
 });

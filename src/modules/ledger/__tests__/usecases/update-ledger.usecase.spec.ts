@@ -1,10 +1,20 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UpdateLedgerUseCase } from './../../usecases';
-import type { ILedgerRepository } from '../../repositories/iledger.repository';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Ledger } from '@prisma/client';
+import { UpdateLedgerUseCase } from '../../usecases/update-ledger.usecase';
+import { ILedgerRepository } from '../../repositories/iledger.repository';
+import { UpdateLedgerDto } from '../../dtos';
 
 describe('UpdateLedgerUseCase', () => {
   let repo: ILedgerRepository;
   let sut: UpdateLedgerUseCase;
+
+  const id = 'record-1';
+
+  const record = {
+    id   : id,
+    name : 'EUROPE',
+    type : 'FIAT',
+  } as unknown as Ledger;
 
   beforeEach(() => {
     repo = {
@@ -15,49 +25,43 @@ describe('UpdateLedgerUseCase', () => {
     sut = new UpdateLedgerUseCase(repo);
   });
 
-  it('should update directly when name is undefined (no findByName)', async () => {
-    const updatedLedger = { id: '1', name: 'EUROPE', type: 'FIAT' };
-    (repo.update as any).mockResolvedValue(updatedLedger);
+  it('should update only the provided fields', async () => {
+    vi.mocked(repo.update).mockResolvedValue(record);
 
-    const input = { type: 'CRYPTO' } as any;
+    const input: UpdateLedgerDto = { type: 'FIAT' };
 
-    const result = await sut.execute('1', input);
+    const result = await sut.execute(id, input);
 
     expect(repo.findByName).not.toHaveBeenCalled();
-
-    expect(repo.update).toHaveBeenCalledTimes(1);
-    expect(repo.update).toHaveBeenCalledWith('1', input);
-
-    expect(result).toBe(updatedLedger);
+    expect(repo.update).toHaveBeenCalledWith(id, input);
+    expect(result).toBe(record);
   });
 
-  it('should trim + uppercase name, check uniqueness, then update with normalized name', async () => {
-    (repo.findByName as any).mockResolvedValue(null);
+  it('should check name and update the ledger', async () => {
+    vi.mocked(repo.findByName).mockResolvedValue(null);
+    vi.mocked(repo.update).mockResolvedValue(record);
 
-    const updatedLedger = { id: '1', name: 'AFRICA', type: 'FIAT' };
-    (repo.update as any).mockResolvedValue(updatedLedger);
+    const result = await sut.execute(id, { name: '  europe  ' });
 
-    const input = { name: '  africa  ' } as any;
-
-    const result = await sut.execute('1', input);
-
-    expect(repo.findByName).toHaveBeenCalledTimes(1);
-    expect(repo.findByName).toHaveBeenCalledWith('AFRICA');
-
-    expect(repo.update).toHaveBeenCalledTimes(1);
-    expect(repo.update).toHaveBeenCalledWith('1', { name: 'AFRICA' });
-
-    expect(result).toBe(updatedLedger);
+    expect(repo.findByName).toHaveBeenCalledWith('EUROPE');
+    expect(repo.update).toHaveBeenCalledWith(id, { name: 'EUROPE' });
+    expect(result).toBe(record);
   });
 
-  it('should throw ConflictError if name already exists for another ledger', async () => {
-    (repo.findByName as any).mockResolvedValue({ id: 'other', name: 'AFRICA' });
+  it('should allow the ledger to keep its name', async () => {
+    vi.mocked(repo.findByName).mockResolvedValue(record);
+    vi.mocked(repo.update).mockResolvedValue(record);
 
-    await expect(sut.execute('1', { name: ' africa ' } as any)).rejects.toMatchObject({
-      message: 'Ledger name already exists!',
+    await expect(sut.execute(id, { name: '  europe  ' })).resolves.toBe(record);
+  });
+
+  it('should throw ConflictError when name belongs to another ledger', async () => {
+    vi.mocked(repo.findByName).mockResolvedValue({ ...record, id: 'other-record' });
+
+    await expect(sut.execute(id, { name: '  europe  ' })).rejects.toMatchObject({
+      statusCode : 409,
+      message    : 'Ledger name already exists!',
     });
-
-    expect(repo.findByName).toHaveBeenCalledWith('AFRICA');
     expect(repo.update).not.toHaveBeenCalled();
   });
 });

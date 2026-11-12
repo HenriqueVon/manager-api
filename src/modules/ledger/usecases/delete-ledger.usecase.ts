@@ -7,9 +7,9 @@ export class DeleteLedgerUseCase {
   constructor(
     @inject(LEDGER_REPOSITORY)
     private readonly ledgerRepository: ILedgerRepository
-  ){}
+  ) {}
 
-  async execute(id: string) : Promise<void>{
+  async execute(id: string): Promise<void> {
     await this.ledgerRepository.delete(id);
   }
 }

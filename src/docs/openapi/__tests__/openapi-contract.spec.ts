@@ -82,9 +82,12 @@ function repositoryMock(record: Record<string, unknown>) {
     findById          : async (id: string) => (id === record.id ? record : null),
     findByName        : async () => null,
     findByDescription : async () => null,
-    // List use cases pass no filters; uniqueness checks pass filters and must find nothing
+    // List use cases pass no filters or only undefined ones (a filter not sent in the query);
+    // uniqueness checks pass defined values and must find nothing
     findMany          : async (filters: Record<string, unknown> = {}) => (
-      Object.keys(filters).length === 0 ? { items: [record], total: 1 } : { items: [], total: 0 }
+      Object.values(filters).every((value) => value === undefined)
+        ? { items: [record], total: 1 }
+        : { items: [], total: 0 }
     ),
     update : async () => record,
     delete : async () => undefined,
