@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FinancialDescription } from '@prisma/client';
 import { GetByIdFinancialDescriptionUseCase } from '../../usecases/get-by-id-financial-description.usecase';
-import type { IFinancialDescriptionRepository } from '../../repositories/ifinancial-description.repository';
-import { NotFoundError } from '@shared/errors/app-error';
+import { IFinancialDescriptionRepository } from '../../repositories/ifinancial-description.repository';
 
 describe('GetByIdFinancialDescriptionUseCase', () => {
   let repo: IFinancialDescriptionRepository;
   let sut: GetByIdFinancialDescriptionUseCase;
+
+  const id = 'record-1';
+  const record = { id } as unknown as FinancialDescription;
 
   beforeEach(() => {
     repo = {
@@ -15,31 +18,18 @@ describe('GetByIdFinancialDescriptionUseCase', () => {
     sut = new GetByIdFinancialDescriptionUseCase(repo);
   });
 
-  it('should return financial description when it exists', async () => {
-    const financialDescription = {
-      id          : '1',
-      description : 'SUPERMARKET',
-    };
+  it('should return the financial description', async () => {
+    vi.mocked(repo.findById).mockResolvedValue(record);
 
-    (repo.findById as any).mockResolvedValue(
-      financialDescription
-    );
+    const result = await sut.execute(id);
 
-    const result = await sut.execute('1');
-
-    expect(repo.findById).toHaveBeenCalledTimes(1);
-    expect(repo.findById).toHaveBeenCalledWith('1');
-
-    expect(result).toBe(financialDescription);
+    expect(repo.findById).toHaveBeenCalledWith(id);
+    expect(result).toBe(record);
   });
 
-  it('should throw NotFoundError when financial description does not exist', async () => {
-    (repo.findById as any).mockResolvedValue(null);
+  it('should throw NotFoundError when the financial description does not exist', async () => {
+    vi.mocked(repo.findById).mockResolvedValue(null);
 
-    await expect(sut.execute('1')).rejects.toBeInstanceOf(
-      NotFoundError
-    );
-
-    expect(repo.findById).toHaveBeenCalledWith('1');
+    await expect(sut.execute(id)).rejects.toMatchObject({ statusCode: 404 });
   });
 });

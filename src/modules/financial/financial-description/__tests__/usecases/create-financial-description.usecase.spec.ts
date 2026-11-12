@@ -1,10 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FinancialDescription } from '@prisma/client';
 import { CreateFinancialDescriptionUseCase } from '../../usecases/create-financial-description.usecase';
-import type { IFinancialDescriptionRepository } from '../../repositories/ifinancial-description.repository';
+import { IFinancialDescriptionRepository } from '../../repositories/ifinancial-description.repository';
+import { CreateFinancialDescriptionDto } from '../../dtos';
 
 describe('CreateFinancialDescriptionUseCase', () => {
   let repo: IFinancialDescriptionRepository;
   let sut: CreateFinancialDescriptionUseCase;
+
+  const input: CreateFinancialDescriptionDto = {
+    description: '  supermarket  ',
+  };
+
+  const record = {
+    id          : 'record-1',
+    description : 'SUPERMARKET',
+  } as unknown as FinancialDescription;
 
   beforeEach(() => {
     repo = {
@@ -15,57 +26,24 @@ describe('CreateFinancialDescriptionUseCase', () => {
     sut = new CreateFinancialDescriptionUseCase(repo);
   });
 
-  it('should trim + uppercase description, check uniqueness, then create', async () => {
-    (repo.findByDescription as any).mockResolvedValue(null);
-
-    const createdFinancialDescription = {
-      id          : '1',
-      description : 'SUPERMARKET',
-    };
-
-    (repo.create as any).mockResolvedValue(
-      createdFinancialDescription
-    );
-
-    const input = {
-      description: '  supermarket  ',
-    } as any;
+  it('should check description and create the financial description', async () => {
+    vi.mocked(repo.findByDescription).mockResolvedValue(null);
+    vi.mocked(repo.create).mockResolvedValue(record);
 
     const result = await sut.execute(input);
 
-    expect(repo.findByDescription).toHaveBeenCalledTimes(1);
-    expect(repo.findByDescription).toHaveBeenCalledWith(
-      'SUPERMARKET'
-    );
-
-    expect(repo.create).toHaveBeenCalledTimes(1);
-    expect(repo.create).toHaveBeenCalledWith({
-      ...input,
-      description: 'SUPERMARKET',
-    });
-
-    expect(result).toBe(createdFinancialDescription);
+    expect(repo.findByDescription).toHaveBeenCalledWith('SUPERMARKET');
+    expect(repo.create).toHaveBeenCalledWith({ ...input, description: 'SUPERMARKET' });
+    expect(result).toBe(record);
   });
 
-  it('should throw ConflictError if description already exists', async () => {
-    (repo.findByDescription as any).mockResolvedValue({
-      id          : 'existing',
-      description : 'SUPERMARKET',
-    });
-
-    const input = {
-      description: ' supermarket ',
-    } as any;
+  it('should throw ConflictError when description already exists', async () => {
+    vi.mocked(repo.findByDescription).mockResolvedValue(record);
 
     await expect(sut.execute(input)).rejects.toMatchObject({
-      message:
-        'FinancialDescription description already exists!',
+      statusCode : 409,
+      message    : 'FinancialDescription description already exists!',
     });
-
-    expect(repo.findByDescription).toHaveBeenCalledWith(
-      'SUPERMARKET'
-    );
-
     expect(repo.create).not.toHaveBeenCalled();
   });
 });
