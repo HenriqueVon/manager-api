@@ -16,7 +16,7 @@ Requirements: Node.js 24, npm and a PostgreSQL database.
 npm install
 ```
 
-Create `.env` from [`.env.example`](.env.example) (database URLs, `API_KEY`, `AUTH_API_URL`). Then:
+Create `.env` from [`.env.example`](.env.example) (database URLs, `API_KEY`, `AUTH_API_URL`, `AUTH_API_KEY`). Then:
 
 ```bash
 npm run prisma:generate
@@ -29,7 +29,7 @@ npm run dev
 The API listens on `http://localhost:<PORT>/v1/api`. Every request needs:
 
 - `x-api-key: <API_KEY>`
-- `Authorization: Bearer <token>`, validated by the authentication API at `AUTH_API_URL`.
+- `Authorization: Bearer <token>`, validated by the authentication API at `AUTH_API_URL`. The `/v1/api/auth/*` session routes (Google login code exchange, refresh, logout) need only the API key.
 
 Set `DOCS_ENABLED=true` to serve Swagger UI at `http://localhost:<PORT>/docs`. Docs are served by the local server only.
 

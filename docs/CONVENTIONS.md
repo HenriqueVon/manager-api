@@ -335,7 +335,7 @@ Details and flow: [ARCHITECTURE.md §11](ARCHITECTURE.md#11-openapi-documentatio
 - Use Vitest; spec files are `*.spec.ts` inside `__tests__/` next to the code under test.
 - Test use cases in isolation: instantiate with `new`, pass a hand-written repository mock; no DI container, Prisma or database.
 - In route specs, mock `controllerAdapter` (`vi.mock('@shared/http/controller.adapter', ...)`) and test validation and routing only.
-- Import a test env module first in specs that load `src/config/env.ts`, which requires `DATABASE_URL`, `API_KEY` and `AUTH_API_URL` at load time. See `src/docs/openapi/__tests__/test-env.ts`.
+- Import a test env module first in specs that load `src/config/env.ts`, which requires `DATABASE_URL`, `API_KEY`, `AUTH_API_URL` and `AUTH_API_KEY` at load time. Specs that import `AuthService` (directly, or through a use case or a router) need it too. See `src/docs/openapi/__tests__/test-env.ts`.
 - Keep `npm run test:run` green, including the OpenAPI specs.
 
 **SHOULD**
@@ -429,7 +429,7 @@ Workflow: [DEVELOPMENT.md §17](DEVELOPMENT.md#17-adding-a-new-environment-varia
 
 **AVOID**
 - `process.env` outside `config/env.ts` (`prisma.client.ts` does it).
-- Declaring a variable `required` without wiring it for deployment. `AUTH_API_URL` is required but not passed to the Lambda by `serverless.yml` or CI.
+- Declaring a variable `required` without wiring it for deployment (`serverless.yml`, the deploy jobs and the GitHub secrets).
 
 ---
 

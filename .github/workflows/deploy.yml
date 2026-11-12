@@ -105,6 +105,9 @@ jobs:
           NODE_ENV: development
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           API_KEY: ${{ secrets.API_KEY }}        
+          AUTH_API_URL: ${{ secrets.AUTH_API_URL }}
+          AUTH_API_KEY: ${{ secrets.AUTH_API_KEY }}
+          AUTH_CLIENT_SECRET: ${{ secrets.AUTH_CLIENT_SECRET }}
 
   migrate-prod:
     needs: validate
@@ -167,3 +170,6 @@ jobs:
           NODE_ENV: production
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           API_KEY: ${{ secrets.API_KEY }}                
+          AUTH_API_URL: ${{ secrets.AUTH_API_URL }}
+          AUTH_API_KEY: ${{ secrets.AUTH_API_KEY }}
+          AUTH_CLIENT_SECRET: ${{ secrets.AUTH_CLIENT_SECRET }}

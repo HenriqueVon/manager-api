@@ -13,7 +13,9 @@ type ResponseName =
   | 'NotFound'
   | 'Conflict'
   | 'PayloadTooLarge'
-  | 'InternalError';
+  | 'TooManyRequests'
+  | 'InternalError'
+  | 'ServiceUnavailable';
 
 openApiRegistry.register('AppErrorResponse', appErrorResponseSchema);
 openApiRegistry.register('ValidationErrorResponse', validationErrorResponseSchema);
@@ -50,13 +52,13 @@ registerJsonResponse(
 
 registerJsonResponse(
   'Unauthorized',
-  'Missing x-api-key header, missing or invalid Authorization header, or bearer token rejected by the authentication API',
+  'Missing x-api-key header, missing or invalid Authorization header, or the authentication API refused the token (AUTH_TOKEN_INVALID, AUTH_TOKEN_EXPIRED: renew the tokens; AUTH_SESSION_REVOKED: log in again) or the login code (AUTH_CODE_INVALID)',
   schemaRef('AppErrorResponse')
 );
 
 registerJsonResponse(
   'Forbidden',
-  'Invalid x-api-key',
+  'Invalid x-api-key, or the authentication API refused the access of the user (CLIENT_DISABLED, MEMBERSHIP_NOT_FOUND, MEMBERSHIP_BLOCKED)',
   schemaRef('AppErrorResponse')
 );
 
@@ -78,10 +80,29 @@ registerJsonResponse(
   schemaRef('AppErrorResponse')
 );
 
+openApiRegistry.registerComponent('responses', 'TooManyRequests', {
+  description : 'Too many attempts, refused by the authentication API (RATE_LIMITED). Try again after the number of seconds in Retry-After.',
+  headers     : {
+    'Retry-After': {
+      description : 'Seconds to wait before trying again',
+      schema      : { type: 'integer' },
+    },
+  },
+  content: {
+    'application/json': { schema: schemaRef('AppErrorResponse') },
+  },
+});
+
 registerJsonResponse(
   'InternalError',
   'Unexpected error',
   schemaRef('InternalErrorResponse')
+);
+
+registerJsonResponse(
+  'ServiceUnavailable',
+  'The authentication API cannot be used: unreachable, too slow, failing, or refusing the API key of this API (AUTH_API_UNAVAILABLE). Not a problem of the session: do not log the user out.',
+  schemaRef('AppErrorResponse')
 );
 
 export const responseRef = (name: ResponseName) => ({ $ref: `#/components/responses/${name}` });
@@ -92,4 +113,5 @@ export const globalErrorResponses = {
   403 : responseRef('Forbidden'),
   413 : responseRef('PayloadTooLarge'),
   500 : responseRef('InternalError'),
+  503 : responseRef('ServiceUnavailable'),
 };

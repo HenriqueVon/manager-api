@@ -58,7 +58,7 @@ src/
 ├── app.ts / handler.ts / local.ts / routes.ts
 ├── config/      env.ts (environment variables), zod-openapi.ts (Zod extension)
 ├── docs/openapi OpenAPI registry, document generation, Swagger UI router
-├── services/    auth (external token validation), database/prisma (client, schema, migrations)
+├── services/    auth (client of the authentication API), database/prisma (client, schema, migrations)
 ├── shared/      container (DI composition root), http (adapter + middlewares),
 │                errors, database (prismaCall), dtos, schemas, security, types
 ├── modules/     ledger/ and financial/<feature>/ — one folder per resource
@@ -73,7 +73,8 @@ Path aliases (`@modules`, `@services`, `@shared`, `@config`, `@docs`) are define
 
 ```
 HTTP Request
-  → Global middleware        (express.json, request container, API key, authentication)
+  → Global middleware        (express.json, request container, API key, authentication;
+                              the `/auth` session routes sit between API key and authentication)
   → Route                    (src/routes.ts → <module>.routes.ts)
   → Validation               (validateRequest + module Zod schemas)
   → Controller               (resolved per request by controllerAdapter)
@@ -189,7 +190,8 @@ Traced for `POST /v1/api/financial/funds/transactions`. Every module follows the
    1. `express.json()`.
    2. **Request container:** [`requestContainerMiddleware`](../src/shared/http/middlewares/request-container.middleware.ts) sets `req.requestId` (random UUID if absent) and `req.container = container.createChildContainer()`.
    3. **API key:** [`apiKeyMiddleware`](../src/shared/http/middlewares/api-key.middleware.ts) reads `x-api-key`. It throws `Unauthorized` (401) if the header is missing and `Forbidden` (403) if it does not match `env.apiKey`, using a timing-safe comparison ([`safe-compare.ts`](../src/shared/security/safe-compare.ts)).
-   4. **Authentication:** [`authMiddleware`](../src/shared/http/middlewares/auth.middleware.ts) creates `new AuthService()` and calls `authenticate(req.header('authorization'))`. It expects `Bearer <token>` and validates it via HTTP against `${AUTH_API_URL}/auth/validate` ([`auth.service.ts`](../src/services/auth/auth.service.ts)).
+   4. **Session routes:** `app.use(authRoutes)` mounts `/v1/api/auth/*` (see [Section 10](#10-authentication-and-security-boundary)). They need the API key but no Bearer token.
+   5. **Authentication:** [`authMiddleware`](../src/shared/http/middlewares/auth.middleware.ts) creates `new AuthService()` and calls `authenticate(req.header('authorization'))`. It expects `Bearer <token>` and validates it with `POST ${AUTH_API_URL}/auth/validate` ([`auth.service.ts`](../src/services/auth/auth.service.ts)). Every route registered after it requires a valid token.
 
 3. **Routing.** [`routes.ts`](../src/routes.ts) dispatches to `financialFundTransactionRoute`. This router is mounted **before** `/financial/funds`, so the funds router's `/:id` route does not capture `transactions`.
 
@@ -249,7 +251,7 @@ Schemas           ──► zod; @prisma/client enums (ledger, bank-account, cat
 
 - **Controller → use case:** controllers inject concrete use case classes; there is no interface.
 - **Repository → Prisma:** repositories import the `prisma` singleton directly; it is not injected.
-- **Authentication:** `authMiddleware` instantiates `AuthService` with `new`.
+- **Authentication:** `authMiddleware` instantiates `AuthService` with `new`. The use cases of the `auth` module receive it by injection (`@inject(AuthService)`, the class is the token).
 - **Configuration:** `env` is imported directly ([`config/env.ts`](../src/config/env.ts)). [`prisma.client.ts`](../src/services/database/prisma/prisma.client.ts) reads `process.env` directly instead of `env`.
 - **Types across layers:** Prisma model types appear in use cases and repository interfaces, and DTO types are derived from HTTP validation schemas. Use cases and interfaces are therefore typed by the ORM and by the HTTP layer.
 
@@ -279,7 +281,7 @@ Schemas           ──► zod; @prisma/client enums (ledger, bank-account, cat
   - Repositories resolve from the root singletons, and controllers and use cases are transient regardless of the container.
   - The child container therefore does not currently provide per-request instances or state isolation.
 
-- **Outside DI.** `AuthService`, the Prisma client and `env`.
+- **Outside DI.** The Prisma client and `env`; `AuthService` only in `authMiddleware`.
 
 ---
 
@@ -428,9 +430,10 @@ There are five distinct runtime behaviors.
 
 ### AppError
 
-- Defined in [`src/shared/errors/app-error.ts`](../src/shared/errors/app-error.ts): `AppError(statusCode, message, code)` and its subclasses `BadRequestError` (400), `Unauthorized` (401), `Forbidden` (403), `NotFoundError` (404), `ConflictError` (409), `PayloadTooLargeError` (413).
+- Defined in [`src/shared/errors/app-error.ts`](../src/shared/errors/app-error.ts): `AppError(statusCode, message, code)` and its subclasses `BadRequestError` (400), `Unauthorized` (401), `Forbidden` (403), `NotFoundError` (404), `ConflictError` (409), `PayloadTooLargeError` (413), and `UpstreamAuthError` (any status; an error of the authentication API relayed with its code, and `retryAfter` for a 429).
 - Where they are thrown:
-  - `Unauthorized` / `Forbidden`: API key middleware and `AuthService`.
+  - `Unauthorized`: API key middleware and `AuthService` (missing or malformed `Authorization`). `Forbidden`: API key middleware.
+  - `UpstreamAuthError`: `AuthService`, for every failed call to the authentication API.
   - `NotFoundError`: the nine get-by-id use cases, and `prismaCall` (P2025, update or delete of a missing record).
   - `ConflictError`: uniqueness checks in create/update use cases, and `prismaCall` (P2002 unique violation, P2003 foreign-key violation).
   - `BadRequestError`: the fund-transaction create/update use cases, and `errorHandler` for malformed JSON bodies.
@@ -454,7 +457,7 @@ There are five distinct runtime behaviors.
 
 - Any non-`AppError` is logged with `console.error`.
 - Response: `500 { message: 'Internal server error' }`.
-- This includes Prisma errors other than P2002/P2003/P2025, body parser errors other than the two above and network failures of the `fetch` call in `AuthService`.
+- This includes Prisma errors other than P2002/P2003/P2025 and body parser errors other than the two above. A network failure of the `fetch` call in `AuthService` is not unexpected: it becomes `503 AUTH_API_UNAVAILABLE`.
 
 Use cases for update and delete do not check that the record exists before calling the repository; the 404 for a missing record comes from `prismaCall` (P2025).
 
@@ -462,25 +465,42 @@ Use cases for update and delete do not check that the record exists before calli
 
 ## 10. Authentication and Security Boundary
 
-Every request to `app` passes two global checks, in this order. `/docs` is outside `app`: it is served only by the local server (`local.ts`) and is public there.
+Every request to `app` passes the API key check. Every route except the session routes also passes the Bearer token check, in this order. `/docs` is outside `app`: it is served only by the local server (`local.ts`) and is public there.
+
+The user is authenticated by the authentication API (auth-api), which manager-api calls as a Client with its own API key (`AUTH_API_KEY`). There are two different keys: `API_KEY` is checked by manager-api on its callers; `AUTH_API_KEY` is sent by manager-api to auth-api.
 
 1. **API key.** [`apiKeyMiddleware`](../src/shared/http/middlewares/api-key.middleware.ts) requires the `x-api-key` header to equal `API_KEY`, compared with `crypto.timingSafeEqual`.
-2. **Bearer token.** [`authMiddleware`](../src/shared/http/middlewares/auth.middleware.ts) delegates to [`AuthService`](../src/services/auth/auth.service.ts), which:
+2. **Session routes** (`POST /v1/api/auth/exchange-code`, `/refresh`, `/logout`, `/logout-all`). The `auth` module relays them to auth-api through `AuthService`, which adds `x-api-key: AUTH_API_KEY` (and `x-client-secret` on the code exchange when `AUTH_CLIENT_SECRET` is set). They need only `API_KEY`, because the user has no token yet. The login itself is the Google flow of auth-api: the frontend sends the browser to auth-api, keeps the PKCE verifier and the state, and calls `exchange-code` with the `code` it receives. manager-api does not interpret, store or log tokens. The device of the user comes from the `x-end-user-ip` and `x-end-user-agent` headers of the frontend and is forwarded as reported.
+3. **Bearer token.** [`authMiddleware`](../src/shared/http/middlewares/auth.middleware.ts) delegates to [`AuthService`](../src/services/auth/auth.service.ts), which:
    - requires `Authorization: Bearer <token>`;
-   - calls `GET ${env.authApiBaseUrl}/auth/validate` with the same Bearer token (`env.authApiBaseUrl` comes from `AUTH_API_URL`);
-   - treats any non-2xx response as `Unauthorized('Invalid or expired token')`;
-   - uses no timeout and no caching.
+   - calls `POST ${env.authApiBaseUrl}/auth/validate` with `x-api-key: AUTH_API_KEY` and the Bearer token (`env.authApiBaseUrl` comes from `AUTH_API_URL` and includes `/v1/api`);
+   - relays a refusal of auth-api with its status and code (`UpstreamAuthError`);
+   - has a timeout (`AUTH_API_TIMEOUT_MS`, default 5000) and no caching.
+
+**Errors from auth-api.** `AuthService` turns a failed call into an `UpstreamAuthError`, which `errorHandler` answers as `{ message, code }` with the status of auth-api, plus `Retry-After` when auth-api sent one (429).
+
+| auth-api answer | manager-api answer |
+|---|---|
+| `401` `AUTH_TOKEN_EXPIRED` | `401` `AUTH_TOKEN_EXPIRED`: the frontend should refresh |
+| `401` `AUTH_TOKEN_INVALID`, `AUTH_SESSION_REVOKED`, `AUTH_CODE_INVALID` | same status and code: the user must log in again |
+| `403` `CLIENT_DISABLED`, `MEMBERSHIP_NOT_FOUND`, `MEMBERSHIP_BLOCKED` | same status and code: the user has no access |
+| `429` `RATE_LIMITED` | same, with `Retry-After` |
+| `400` | `400` `BAD_REQUEST` |
+| `5xx`, not JSON, timeout, network failure, or `401` `CLIENT_INVALID` | `503` `AUTH_API_UNAVAILABLE` |
+
+`CLIENT_INVALID` means `AUTH_API_KEY` or `AUTH_CLIENT_SECRET` is wrong, which the user cannot fix and must not look like an expired session, so it becomes a `503` and is logged as `AUTH_API_FAILED`. A `503` is not a session problem: the frontend must not log the user out.
 
 **Identity and authorization:**
 - **Decision: manager-api is single-user for now** ([issue #19](https://github.com/HenriqueVon/manager-api/issues/19)). Authentication only establishes that the caller is allowed to use the API; there is no data ownership.
-- The response body of the validation call is not read.
-- No user identity is attached to the request.
+- The response body of the validation call is not read: user, roles and permissions are not attached to the request. This is intended for now (no `req.auth`).
 - No authorization check exists: any request that passes both checks can access every ledger and every resource. This is intended under the single-user decision. Supporting multiple users would require a new decision.
+- Who can log in is decided in auth-api: the Client needs an `ACTIVE` membership for the user. With `allowRegistration` on in auth-api, any Google account could create one and reach every ledger. Keep it off and invite the user.
 
 **Configuration:**
-- [`config/env.ts`](../src/config/env.ts) requires `DATABASE_URL`, `API_KEY` and `AUTH_API_URL`; a missing value throws at module load.
+- [`config/env.ts`](../src/config/env.ts) requires `DATABASE_URL`, `API_KEY`, `AUTH_API_URL` and `AUTH_API_KEY`; a missing value throws at module load.
+- `AUTH_CLIENT_SECRET` is optional (only for a confidential Client) and `AUTH_API_TIMEOUT_MS` defaults to 5000.
 - `PORT` defaults to 3000, `NODE_ENV` to `development` and `DOCS_ENABLED` to `'false'`.
-- [`serverless.yml`](../serverless.yml) forwards only `NODE_ENV`, `DATABASE_URL` and `API_KEY` to the Lambda environment.
+- [`serverless.yml`](../serverless.yml) forwards `NODE_ENV`, `DATABASE_URL`, `API_KEY`, `AUTH_API_URL`, `AUTH_API_KEY`, `AUTH_CLIENT_SECRET` and `AUTH_API_TIMEOUT_MS` to the Lambda environment, and the deploy jobs set them from GitHub (`AUTH_API_URL` is a variable, the others are secrets).
 
 ---
 
@@ -489,9 +509,9 @@ Every request to `app` passes two global checks, in this order. `/docs` is outsi
 - **Zod extension.** [`config/zod-openapi.ts`](../src/config/zod-openapi.ts) calls `extendZodWithOpenApi(z)`. It is imported first in `app.ts` and is a Vitest setup file.
 - **Registry.** [`docs/openapi/registry.ts`](../src/docs/openapi/registry.ts) exports a single `OpenAPIRegistry` and registers two security schemes: `ApiKeyAuth` (header `x-api-key`) and `BearerAuth` (HTTP bearer, JWT).
 - **Error schemas.** [`shared/schemas/error-response.schema.ts`](../src/shared/schemas/error-response.schema.ts) defines the three error bodies the runtime produces: `appErrorResponseSchema` (`{ message, code }`), `validationErrorResponseSchema` (`{ message, errors, issues }`) and `internalErrorResponseSchema` (`{ message: 'Internal server error' }`).
-- **Shared responses.** [`docs/openapi/responses.ts`](../src/docs/openapi/responses.ts) registers those schemas as components and registers seven response components: `ValidationError` (400), `ValidationOrBusinessRuleError` (400, fund transactions), `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `Conflict` (409) and `InternalError` (500). It exports:
+- **Shared responses.** [`docs/openapi/responses.ts`](../src/docs/openapi/responses.ts) registers those schemas as components and registers ten response components: `ValidationError` (400), `ValidationOrBusinessRuleError` (400, fund transactions), `Unauthorized` (401), `Forbidden` (403), `NotFound` (404), `Conflict` (409), `PayloadTooLarge` (413), `TooManyRequests` (429, with `Retry-After`), `InternalError` (500) and `ServiceUnavailable` (503). It exports:
   - `responseRef(name)`, a `$ref` to one of those components;
-  - `globalErrorResponses`, the 401/403/500 responses produced by the global middlewares.
+  - `globalErrorResponses`, the 401/403/413/500/503 responses produced by the global middlewares.
 - **Response schemas.** Each module's `<x>.schema.ts` describes the Prisma model as serialized to JSON, using the primitives in [`shared/schemas/output.schema.ts`](../src/shared/schemas/output.schema.ts):
   - `decimalString` for `Decimal` columns (Prisma serializes them as strings);
   - `dateTimeString` for `DateTime` columns (ISO 8601 date-time).
@@ -506,7 +526,7 @@ Every request to `app` passes two global checks, in this order. `/docs` is outsi
 - **Document generation.**
   - [`docs/openapi/document.ts`](../src/docs/openapi/document.ts) builds an OpenAPI 3.0.0 document with `OpenApiGeneratorV3`.
   - The single server is `http://localhost:${PORT}/v1/api`.
-  - Global security is a single requirement with both `ApiKeyAuth` and `BearerAuth` (both are required).
+  - Global security is a single requirement with both `ApiKeyAuth` and `BearerAuth` (both are required). The four `Auth` operations override it with `ApiKeyAuth` only.
 - **Swagger UI.**
   - [`docs/openapi/openapi.routes.ts`](../src/docs/openapi/openapi.routes.ts) serves `GET /docs/openapi.json` plus Swagger UI at `/docs`.
   - The document is generated on the **first request** to `/docs` and then reused.
@@ -566,11 +586,11 @@ The contract spec keeps an explicit table of modules (model, repository token, p
 ### Layers without tests
 
 - `controllerAdapter` error paths, and controllers beyond the success paths exercised by the contract spec.
-- Global middleware: authentication and request container (API key and error handler are exercised by `openapi-errors.spec.ts`).
-- `AuthService` and the external authentication API.
+- Global middleware: request container (API key and error handler are exercised by `openapi-errors.spec.ts`; the order of API key, session routes and authentication by `src/__tests__/app.auth.spec.ts`).
+- The external authentication API itself: `AuthService` is tested with a mocked `fetch`, never against a real auth-api.
 - DI container registrations (`shared/container/index.ts`).
 - Repository implementations, Prisma, the database and migrations.
-- `app.ts` composition and end-to-end requests through the full middleware chain.
+- End-to-end requests through the full middleware chain (only the authentication order is covered, by `app.auth.spec.ts`).
 
 No coverage tool is configured in `package.json`. CI runs `npm run test` in the `validate` job.
 
@@ -636,13 +656,13 @@ Listed factually. No fixes are proposed in this document.
 **Dependency injection and wiring**
 
 7. The per-request child container has no scoped registrations, so it provides no per-request isolation.
-8. `AuthService`, the Prisma client and configuration are outside the DI container. `prisma.client.ts` reads `process.env.DATABASE_URL` directly rather than `env`.
+8. The Prisma client and configuration are outside the DI container, and `authMiddleware` creates `AuthService` with `new`. `prisma.client.ts` reads `process.env.DATABASE_URL` directly rather than `env`.
 9. The composition root lives in `src/shared/` and imports every module.
 
 **Runtime behavior**
 
 10. `GET /health` is registered after `errorHandler` and behind the API key and authentication middleware.
-11. `AUTH_API_URL` is required by `config/env.ts` but is not listed in `serverless.yml` `provider.environment` or in the deploy jobs' environment.
+11. The session routes (`/v1/api/auth/*`) are the only routes that do not require a Bearer token. They are mounted in `app.ts` through the named export `authRoutes` of `routes.ts`, not through the default router.
 
 **Code-level oddities**
 
