@@ -7,3 +7,4 @@ import '@modules/financial/financial-payment-method/financial-payment-method.ope
 import '@modules/financial/financial-description/financial-description.openapi';
 import '@modules/financial/financial-currency/financial-currency.openapi';
 import '@modules/ledger/ledger.openapi';
+import '@modules/auth/auth.openapi';

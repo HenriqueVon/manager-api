@@ -1,7 +1,7 @@
 import './test-env';
 import { describe, it, expect } from 'vitest';
 import { Prisma } from '@prisma/client';
-import routes from '../../../routes';
+import routes, { authRoutes } from '../../../routes';
 import { createOpenApiDocument } from '../document';
 import { openApiTags } from '../tags';
 import {
@@ -19,22 +19,45 @@ const SUCCESS_STATUS_BY_METHOD: Record<string, string> = {
   delete : '204',
 };
 
+// The session routes relay the authentication API: they create no resource of this API
+const AUTH_SUCCESS_STATUS_BY_PATH: Record<string, string> = {
+  '/auth/exchange-code' : '200',
+  '/auth/refresh'       : '200',
+  '/auth/logout'        : '204',
+  '/auth/logout-all'    : '204',
+};
+
+const isAuthOperation = (operation: any) => operation.tags.includes('Auth');
+
 describe('OpenAPI document', () => {
   describe('routes', () => {
     it('should document every Express route, and only those routes', () => {
-      expect(listDocumentedOperations(document)).toEqual(listExpressRoutes(routes));
+      expect(listDocumentedOperations(document)).toEqual(
+        [...listExpressRoutes(routes), ...listExpressRoutes(authRoutes)].sort()
+      );
     });
 
     it('should document the success status used by the controllers for each method', () => {
-      forEachOperation(document, (name, operation, _path, method) => {
+      forEachOperation(document, (name, operation, path, method) => {
         const successStatuses = Object.keys(operation.responses).filter((status) => status.startsWith('2'));
+        const expected = isAuthOperation(operation) ? AUTH_SUCCESS_STATUS_BY_PATH[path] : SUCCESS_STATUS_BY_METHOD[method];
 
-        expect(successStatuses, name).toEqual([SUCCESS_STATUS_BY_METHOD[method]]);
+        expect(successStatuses, name).toEqual([expected]);
       });
     });
   });
 
   describe('security', () => {
+    it('should require only the API key on the session routes, and the global requirement on the others', () => {
+      forEachOperation(document, (name, operation) => {
+        if (isAuthOperation(operation)) {
+          expect(operation.security, name).toEqual([{ ApiKeyAuth: [] }]);
+        } else {
+          expect(operation.security, name).toBeUndefined();
+        }
+      });
+    });
+
     it('should require the API key AND the bearer token in a single requirement', () => {
       expect(document.security).toEqual([{ ApiKeyAuth: [], BearerAuth: [] }]);
     });
@@ -53,7 +76,14 @@ describe('OpenAPI document', () => {
         expect(operation.responses['401'], name).toEqual({ $ref: '#/components/responses/Unauthorized' });
         expect(operation.responses['403'], name).toEqual({ $ref: '#/components/responses/Forbidden' });
         expect(operation.responses['500'], name).toEqual({ $ref: '#/components/responses/InternalError' });
+        expect(operation.responses['503'], name).toEqual({ $ref: '#/components/responses/ServiceUnavailable' });
       });
+    });
+
+    it('should document 429 on the session routes that can be rate limited', () => {
+      for (const path of ['/auth/exchange-code', '/auth/refresh']) {
+        expect(document.paths[path].post.responses['429'], path).toEqual({ $ref: '#/components/responses/TooManyRequests' });
+      }
     });
 
     it('should document 400 on every operation and 404 on every operation with an id', () => {
@@ -85,6 +115,9 @@ describe('OpenAPI document', () => {
       }
 
       forEachOperation(document, (name, operation, path, method) => {
+        // The session routes have no stored record
+        if (isAuthOperation(operation)) return;
+
         const itemPath = path.endsWith('{id}') ? path : `${path}/{id}`;
         const model = document.paths[itemPath].get.responses['200'].content['application/json'].schema.$ref.split('/').pop();
 

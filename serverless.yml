@@ -25,6 +25,10 @@ provider:
     NODE_ENV: ${env:NODE_ENV}
     DATABASE_URL: ${env:DATABASE_URL}
     API_KEY: ${env:API_KEY}
+    AUTH_API_URL: ${env:AUTH_API_URL}
+    AUTH_API_KEY: ${env:AUTH_API_KEY}
+    AUTH_CLIENT_SECRET: ${env:AUTH_CLIENT_SECRET, ""}
+    AUTH_API_TIMEOUT_MS: ${env:AUTH_API_TIMEOUT_MS, "5000"}
 
 functions:
   api:

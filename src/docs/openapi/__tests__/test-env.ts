@@ -4,3 +4,4 @@
 process.env.DATABASE_URL ??= 'postgresql://test:test@localhost:5432/test';
 process.env.API_KEY ??= 'test-api-key';
 process.env.AUTH_API_URL ??= 'http://localhost';
+process.env.AUTH_API_KEY ??= 'test-auth-api-key';

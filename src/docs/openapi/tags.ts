@@ -5,6 +5,10 @@ export type OpenApiTag = {
 
 export const openApiTags: OpenApiTag[] = [
   {
+    name        : 'Auth',
+    description : 'Session routes of the social login (Google), relayed to the authentication API. They need the API key but no bearer token.',
+  },
+  {
     name        : 'Ledgers',
     description : 'Groups of accounts to manage financial transactions and balances.',
   },

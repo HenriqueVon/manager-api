@@ -19,7 +19,7 @@ Conventions here are labeled by how strictly the current code follows them:
 | **Node.js 24** | CI uses `node-version: 24` ([deploy.yml](../.github/workflows/deploy.yml)); Lambda runtime is `nodejs24.x` ([serverless.yml](../serverless.yml)). `package.json` has no `engines` field and there is no `.nvmrc`. |
 | **npm** | `package-lock.json` is committed and CI installs with `npm ci`. |
 | **PostgreSQL** | Prisma datasource provider is `postgresql`. The repository does **not** provide a local database (no Docker/Compose files). You must supply a PostgreSQL instance yourself. |
-| **A reachable authentication API** | Every API request (including `/health`) is validated against `${AUTH_API_URL}/auth/validate`. There is no local bypass in the code. |
+| **A reachable authentication API** | Every API request except the `/auth` session routes (including `/health`) is validated with `POST ${AUTH_API_URL}/auth/validate`, as a Client of that API. There is no local bypass in the code. |
 
 ### Install dependencies
 
@@ -40,7 +40,10 @@ Create a `.env` file based on [`.env.example`](../.env.example). `.env` is git-i
 | `DATABASE_URL` | `config/env.ts`, `prisma.client.ts`, [`prisma.config.ts`](../prisma.config.ts) | **required** | App startup fails without it. |
 | `SHADOW_DATABASE_URL` | `prisma.config.ts` | used by Prisma CLI | Needed by `prisma migrate dev`. Not read by the app. |
 | `API_KEY` | `config/env.ts` | **required** | Clients must send it as `x-api-key`. |
-| `AUTH_API_URL` | `config/env.ts` | **required** | Base URL of the external token-validation API. |
+| `AUTH_API_URL` | `config/env.ts` | **required** | Base URL of the authentication API, including `/v1/api`. |
+| `AUTH_API_KEY` | `config/env.ts` | **required** | API key of the Client of this API in the authentication API. Not the same as `API_KEY`. |
+| `AUTH_CLIENT_SECRET` | `config/env.ts` | optional | Client secret, only if the Client is confidential. Sent on the code exchange. |
+| `AUTH_API_TIMEOUT_MS` | `config/env.ts` | optional (5000) | Timeout of every call to the authentication API. |
 | `DOCS_ENABLED` | `config/env.ts` | optional (default `'false'`) | Set to `true` to serve Swagger UI at `/docs` (only when `NODE_ENV !== 'production'`). |
 
 `config/env.ts` imports `dotenv/config`, so `.env` in the working directory is loaded automatically. `prisma.config.ts` also imports `dotenv/config`.
@@ -87,7 +90,7 @@ VS Code users can use the **"Debug (tsx watch local.ts)"** launch configuration 
 
 All endpoints are under `/v1/api/...`. Requests need:
 - `x-api-key: <API_KEY>`
-- `Authorization: Bearer <token>`, where the token must be accepted by `AUTH_API_URL`.
+- `Authorization: Bearer <token>`, where the token must be accepted by `AUTH_API_URL` for the Client of `AUTH_API_KEY`. The `/v1/api/auth/*` session routes need only the API key.
 
 ### Entry points
 
@@ -100,7 +103,7 @@ All endpoints are under `/v1/api/...`. Requests need:
 
 ### Serverless / AWS configuration relevant to development
 
-- [`serverless.yml`](../serverless.yml) uses `useDotenv: true` and maps `NODE_ENV`, `DATABASE_URL`, `API_KEY` from your environment into `provider.environment`. `AUTH_API_URL` and `DOCS_ENABLED` are **not** listed there (see [Section 17](#17-adding-a-new-environment-variable)).
+- [`serverless.yml`](../serverless.yml) uses `useDotenv: true` and maps `NODE_ENV`, `DATABASE_URL`, `API_KEY`, `AUTH_API_URL`, `AUTH_API_KEY`, `AUTH_CLIENT_SECRET` and `AUTH_API_TIMEOUT_MS` from your environment into `provider.environment`. `DOCS_ENABLED` is **not** listed there (see [Section 17](#17-adding-a-new-environment-variable)).
 - Code is bundled with `serverless-esbuild` (no separate build step).
 
 ---
@@ -669,7 +672,8 @@ Middleware order in [`src/app.ts`](../src/app.ts):
 | 1 | `express.json()` | Parses JSON bodies. |
 | 2 | `requestContainerMiddleware` | Sets `req.requestId` (not read anywhere else) and `req.container`. |
 | 3 | `apiKeyMiddleware` | Requires `x-api-key` equal to `API_KEY` (timing-safe compare). |
-| 4 | `authMiddleware` | Requires `Authorization: Bearer <token>`; `AuthService` calls `GET ${AUTH_API_URL}/auth/validate`. Non-2xx → 401. |
+| 3b | `authRoutes` | The `/v1/api/auth/*` session routes. They need only the API key. |
+| 4 | `authMiddleware` | Requires `Authorization: Bearer <token>`; `AuthService` calls `POST ${AUTH_API_URL}/auth/validate`. A refusal keeps the status and code of the authentication API; a failure of it is 503. |
 | 5 | `routes` | `/v1/api/...` module routers. |
 | 6 | `errorHandler` | Converts errors to responses (see [Section 12](#12-error-handling)). |
 | 7 | `GET /health` | Returns `{ ok: true, service: 'manager-api' }`. Registered after `errorHandler`. |
@@ -841,12 +845,9 @@ Wrapping the migration SQL in `BEGIN;` / `COMMIT;` (the migration step above) av
    Read it through `env` (e.g. `env.apiKey`). Exception: `prisma.client.ts` reads `process.env.DATABASE_URL` directly.
 2. **Local development:** add it to your `.env`, and add it to [`.env.example`](../.env.example) so others know it exists.
 3. **Serverless:** to make it available in Lambda, add it to `provider.environment` in [`serverless.yml`](../serverless.yml), e.g. `MY_VAR: ${env:MY_VAR}`. `.env*` files are excluded from the deployment package, so `dotenv` will not supply values in Lambda.
-4. **CI/CD:** the deploy jobs in [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) set `NODE_ENV`, `DATABASE_URL` (secret) and `API_KEY` (secret) for `serverless deploy`. A new variable must be added to both `deploy-dev` and `deploy-prod`, typically from GitHub secrets or vars.
+4. **CI/CD:** the deploy jobs in [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) set `NODE_ENV`, `DATABASE_URL`, `API_KEY`, `AUTH_API_KEY` and `AUTH_CLIENT_SECRET` (secrets) and `AUTH_API_URL` (variable) for `serverless deploy`. A new variable must be added to both `deploy-dev` and `deploy-prod`, typically from GitHub secrets or vars.
 
-**Example of the risk:**
-- `AUTH_API_URL` is `required()` in `env.ts` and listed in `.env.example`.
-- It is **not** in `serverless.yml` `provider.environment` nor in the CI deploy `env`.
-- Locally it works because `.env` is loaded. Without it the app throws at startup, and the repository does not show how deployed environments receive it.
+**The risk:** a variable that is `required()` in `env.ts` and listed in `.env.example` but missing from `serverless.yml` `provider.environment` or from the CI deploy `env`. Locally it works because `.env` is loaded; in the Lambda the app throws at startup. `AUTH_API_KEY` must exist as a secret in the GitHub environments `dev` and `prd` before the next deploy.
 
 When adding a required variable, check all four places.
 
@@ -891,11 +892,12 @@ When adding a required variable, check all four places.
 9. **Prisma `undefined` filters.** Passing `undefined` in a `findMany` filter removes that condition instead of matching null.
 10. **Skipping `prisma generate`.** Schemas import Prisma enums; type check and tests fail without a generated client.
 11. **Using `npm run test` in a script expecting it to exit.** Locally it starts watch mode; use `npm run test:run`.
-12. **No local auth bypass.** Every request, including `/health`, needs a valid API key **and** a token accepted by `AUTH_API_URL`.
+12. **No local auth bypass.** Every request, including `/health`, needs a valid API key **and** a token accepted by `AUTH_API_URL`; only the `/v1/api/auth/*` session routes need just the API key.
 13. **Pushing to `develop` or `main` deploys.** The workflow deploys on push to those branches after validation.
-14. **New env vars missing in deployment.** See the `AUTH_API_URL` example in [Section 17](#17-adding-a-new-environment-variable).
+14. **New env vars missing in deployment.** See [Section 17](#17-adding-a-new-environment-variable).
 15. **Ignoring the value returned by `openApiRegistry.register()`.** Passing the original schema to `registerPath` inlines it and leaves an unused component; `openapi-document.spec.ts` fails on unused components.
 16. **OpenAPI examples that break a business rule.** `openapi-contract.spec.ts` sends each documented example through the real use cases, with a repository mock whose `findById` answers only for the example's own id. An example that a use case rejects (e.g. a category whose `parentCategoryId` equals its own id) makes the contract spec fail with that error.
+17. **Mixed line endings.** Some tracked files use CRLF (`app.ts`, `serverless.yml`, `deploy.yml`, `.env.example`) and others LF (the docs, most modules). `sed -i` in Git Bash rewrites a CRLF file as LF, which shows up as a whole-file diff. Edit with the editor tools, or check with `git ls-files --eol <file>` and restore the original endings.
 
 ---
 
