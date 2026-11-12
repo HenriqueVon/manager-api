@@ -37,7 +37,7 @@ describe('FinancialCategory routes', () => {
     type             : 'EXPENSE',
     balance          : 0,
     ledgerId         : 'cm1234567890abcdefghijkl',
-    parentCategoryId : 'cm1234567890abcdefghijkl',
+    parentCategoryId : 'cm0987654321zyxwvutsrqpo',
   };
 
   beforeEach(() => {
@@ -135,7 +135,7 @@ describe('FinancialCategory routes', () => {
           type             : 'EXPENSE',
           balance          : 0,
           ledgerId         : 'cm1234567890abcdefghijkl',
-          parentCategoryId : 'cm1234567890abcdefghijkl',
+          parentCategoryId : 'cm0987654321zyxwvutsrqpo',
         });
 
       expect(response.status).toBe(400);
@@ -150,7 +150,7 @@ describe('FinancialCategory routes', () => {
           name             : 'SUPERMARKET',
           type             : 'EXPENSE',
           ledgerId         : 'cm1234567890abcdefghijkl',
-          parentCategoryId : 'cm1234567890abcdefghijkl',
+          parentCategoryId : 'cm0987654321zyxwvutsrqpo',
         });
 
       expect(response.status).toBe(201);
@@ -168,7 +168,7 @@ describe('FinancialCategory routes', () => {
           type             : 'EXPENSE',
           balance          : 0,
           ledgerId         : 'cm1234567890abcdefghijkl',
-          parentCategoryId : 'cm1234567890abcdefghijkl',
+          parentCategoryId : 'cm0987654321zyxwvutsrqpo',
         });
 
       expect(response.status).toBe(400);
@@ -184,7 +184,7 @@ describe('FinancialCategory routes', () => {
           type             : 'EXPENSE',
           balance          : 0,
           ledgerId         : 'cm1234567890abcdefghijkl',
-          parentCategoryId : 'cm1234567890abcdefghijkl',
+          parentCategoryId : 'cm0987654321zyxwvutsrqpo',
         });
 
       expect(response.status).toBe(400);
@@ -200,7 +200,7 @@ describe('FinancialCategory routes', () => {
           type             : 'NOT_A_VALUE',
           balance          : 0,
           ledgerId         : 'cm1234567890abcdefghijkl',
-          parentCategoryId : 'cm1234567890abcdefghijkl',
+          parentCategoryId : 'cm0987654321zyxwvutsrqpo',
         });
 
       expect(response.status).toBe(400);

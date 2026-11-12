@@ -25,7 +25,7 @@ const financialCategoryInputExample = {
   type             : 'EXPENSE',
   balance          : 0,
   ledgerId         : 'cm1234567890abcdefghijkl',
-  parentCategoryId : 'cm1234567890abcdefghijkl',
+  parentCategoryId : 'cm0987654321zyxwvutsrqpo',
 };
 
 const financialCategoryExample = {
@@ -34,7 +34,7 @@ const financialCategoryExample = {
   type             : 'EXPENSE',
   balance          : '0',
   ledgerId         : 'cm1234567890abcdefghijkl',
-  parentCategoryId : 'cm1234567890abcdefghijkl',
+  parentCategoryId : 'cm0987654321zyxwvutsrqpo',
   createdAt        : '2026-01-01T00:00:00.000Z',
   updatedAt        : '2026-01-01T00:00:00.000Z',
 };
