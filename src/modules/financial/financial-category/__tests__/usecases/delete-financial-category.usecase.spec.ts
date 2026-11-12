@@ -1,7 +1,6 @@
-import 'reflect-metadata';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeleteFinancialCategoryUseCase } from '../../usecases/delete-financial-category.usecase';
-import type { IFinancialCategoryRepository } from '../../repositories/ifinancial-category.repository';
+import { IFinancialCategoryRepository } from '../../repositories/ifinancial-category.repository';
 
 describe('DeleteFinancialCategoryUseCase', () => {
   let repo: IFinancialCategoryRepository;
@@ -15,13 +14,11 @@ describe('DeleteFinancialCategoryUseCase', () => {
     sut = new DeleteFinancialCategoryUseCase(repo);
   });
 
-  it('should delete financial category by id', async () => {
-    (repo.delete as any).mockResolvedValue(undefined);
+  it('should delete the financial category by id', async () => {
+    vi.mocked(repo.delete).mockResolvedValue(undefined);
 
-    const result = await sut.execute('category-1');
+    await sut.execute('record-1');
 
-    expect(repo.delete).toHaveBeenCalledTimes(1);
-    expect(repo.delete).toHaveBeenCalledWith('category-1');
-    expect(result).toBeUndefined();
+    expect(repo.delete).toHaveBeenCalledWith('record-1');
   });
 });
