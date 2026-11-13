@@ -325,14 +325,15 @@ All write operations go through `prismaCall`; no read operation does. No reposit
 ### Pagination
 
 - `findMany` uses `limit = Math.min(params.limit ?? 20, 100)` and `offset = params.offset ?? 0`.
-- `orderBy = { [params.orderBy]: params.orderDirection ?? 'asc' }` when `orderBy` is given.
+- The ledger, description, category, entry and fund transaction repositories sort by `params.orderBy`, or by a default field (`name`, `description`, `name`, `dueDate`, `transactionDate`), in `params.orderDirection ?? 'asc'`, with the `id` as a tie-breaker, so the order is total and a page never repeats or skips a row. The other repositories use `{ [params.orderBy]: params.orderDirection ?? 'asc' }` when `orderBy` is given, and no order otherwise.
 - It runs `findMany` and `count` with `Promise.all` and returns `{ items, total }` (`PaginatedResponseDto`).
 - The list query schemas also cap `limit` at 100 and restrict `orderBy` to a per-module enum.
 
 **Filters.**
 - `findMany` accepts `filters: Partial<Entity>`.
-- The list use cases always pass `{}`, so the HTTP list endpoints do not filter.
-- Non-empty filters are used only internally by the fund and category use cases for uniqueness checks.
+- Some list endpoints expose filters in their query schema: ledgers (`name`, `search`), descriptions (`description`, `search`), categories (`name`, `ledgerId`, `search`), and entries and fund transactions (`ledgerId` and an inclusive date range). The other lists do not filter.
+- The date range is `dueDateFrom` / `dueDateTo` on entries and `transactionDateFrom` / `transactionDateTo` on fund transactions: ISO dates (`YYYY-MM-DD`), either end optional, both ends included, `400` when the end is before the start. The schema turns them into `Date` at midnight UTC, the use case passes them as a `DateRangeDto` (`src/shared/dtos/date-range.dto.ts`) in the third argument of `findMany`, and the repository applies `gte` and `lte`. An exact `dueDate` or `transactionDate` filter, which no endpoint uses, wins over the range.
+- Non-empty filters are also used internally by the fund and category use cases for uniqueness checks.
 - Prisma ignores filter keys whose value is `undefined`.
 
 ### Uniqueness
@@ -668,10 +669,9 @@ Listed factually. No fixes are proposed in this document.
 
 12. All nine get-by-id use cases declare `Promise<X | null>` but never return `null`.
 13. `exists()` is declared and implemented in all repositories but is never called by application code (the OpenAPI contract spec only mocks it). `IdParamsDto` is declared but unused. `req.requestId` is set but never read.
-14. List use cases always pass empty filters, so the `findMany` filter support is not reachable through the HTTP API.
-15. `FinancialFundTransactionController.list` contains a `console.log`, which ESLint reports as a warning.
-16. `package.json` lists the npm package `crypto` as a dependency, while the code imports `crypto` (resolved to the Node built-in). `typescript-eslint` is listed under `dependencies`.
-17. The repository `README.md` contains only the project title.
+14. The lists that do not filter (currencies, payment methods, bank accounts and funds) pass empty filters, so the `findMany` filter support of their repositories is not reachable through the HTTP API.
+15. `package.json` lists the npm package `crypto` as a dependency, while the code imports `crypto` (resolved to the Node built-in). `typescript-eslint` is listed under `dependencies`.
+16. The repository `README.md` contains only the project title.
 
 ---
 
