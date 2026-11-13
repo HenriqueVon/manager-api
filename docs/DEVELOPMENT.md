@@ -332,7 +332,7 @@ Every module currently exposes **only** the five CRUD endpoints (`GET /`, `POST 
 
 - List query schemas are `.strict()`, so any new query parameter must be added to the schema, or requests using it get 400.
 - The controller `list` methods build `ListParamsDto` explicitly from `limit`, `offset`, `orderBy`, `orderDirection`. A new parameter must also be passed by the controller.
-- No list endpoint currently supports filtering (see [Section 9](#9-repositories)).
+- Only some list endpoints filter: ledgers, descriptions, categories, entries and fund transactions (see [Section 9](#9-repositories)).
 
 ### Body validation
 
@@ -530,8 +530,9 @@ return { items, total };
 
 - `findMany` destructures an explicit list of model fields from `filters: Partial<Entity>`.
 - Keys with `undefined` values are ignored by Prisma.
-- The list use cases always pass `{}`, so HTTP list endpoints do not filter.
-- Non-empty filters are used only internally by the fund and category uniqueness checks.
+- Ledgers, descriptions, categories, entries and fund transactions expose filters in their list query schema. Entries and fund transactions filter by `ledgerId` and by an inclusive date range (`dueDateFrom`/`dueDateTo`, `transactionDateFrom`/`transactionDateTo`, ISO dates, `400` when the end is before the start); the range is the third argument of `findMany` (`DateRangeDto`). The other lists pass `{}` and do not filter.
+- Non-empty filters are also used internally by the fund and category uniqueness checks.
+- To add a filter to a list: add it to the `.strict()` query schema (with its `.openapi` description), read it in the use case, pass it to `findMany`, add the field to the `where` in the repository, and cover it in the route spec (conversion and `400`) and in the use case spec. The repositories have no tests against a real database, so the `where` itself is not covered.
 
 ### Unique checks
 
@@ -885,7 +886,6 @@ When adding a required variable, check all four places.
    - `updateLedgerSchema` without `.strict()`;
    - the fund/category uniqueness filters with possibly `undefined` fields;
    - the fund-transaction credit/debit rule;
-   - the `console.log` in `FinancialFundTransactionController.list`;
    - get-by-id return types with `| null`.
 7. **`:id` vs foreign keys.** Path `:id` is CUID-validated; body foreign keys are only `z.string()`. A foreign key that does not exist, or that belongs to another ledger, is only rejected by the database and returns 409 (`P2003`), not 400.
 8. **Expecting use cases to detect missing records on update/delete.** They do not check existence; the 404 comes from `prismaCall` translating Prisma `P2025`. A use case that needs the record before writing must fetch it itself.
