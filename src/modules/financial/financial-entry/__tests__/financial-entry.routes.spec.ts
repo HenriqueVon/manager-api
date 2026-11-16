@@ -80,6 +80,57 @@ describe('FinancialEntry routes', () => {
       expect(requestReceived.query).toMatchObject({ limit: 10, offset: 5 });
     });
 
+    it('should convert the filters to their types', async () => {
+      const response = await request(app)
+        .get('/financial/entries')
+        .query({
+          ledgerId    : 'cm1234567890abcdefghijkl',
+          dueDateFrom : '2026-01-01',
+          dueDateTo   : '2026-01-31',
+        });
+
+      expect(response.status).toBe(200);
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+
+      expect(requestReceived.query).toEqual({
+        ledgerId    : 'cm1234567890abcdefghijkl',
+        dueDateFrom : new Date('2026-01-01T00:00:00.000Z'),
+        dueDateTo   : new Date('2026-01-31T00:00:00.000Z'),
+      });
+    });
+
+    it('should accept a range with only one end, and the same day at both ends', async () => {
+      const only = await request(app).get('/financial/entries').query({ dueDateFrom: '2026-01-01' });
+      const sameDay = await request(app).get('/financial/entries').query({ dueDateFrom: '2026-01-15', dueDateTo: '2026-01-15' });
+
+      expect(only.status).toBe(200);
+      expect(sameDay.status).toBe(200);
+    });
+
+    it.each(['2026-13-01', '2026-02-30', '01/01/2026', 'yesterday', '2026-01-01T00:00:00.000Z'])(
+      'should return 400 when a date is not a valid ISO date (%s)',
+      async (value) => {
+        const response = await request(app).get('/financial/entries').query({ dueDateFrom: value });
+
+        expect(response.status).toBe(400);
+        expect(response.body.message).toBe('Invalid query');
+        expect(response.body.issues.some((issue: any) => issue.path === 'dueDateFrom')).toBe(true);
+        expect(controllerSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    it('should return 400 when the range ends before it starts', async () => {
+      const response = await request(app)
+        .get('/financial/entries')
+        .query({ dueDateFrom: '2026-02-01', dueDateTo: '2026-01-31' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.message).toBe('Invalid query');
+      expect(response.body.issues.some((issue: any) => issue.path === 'dueDateTo')).toBe(true);
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+
     it('should return 400 when orderBy is invalid', async () => {
       const response = await request(app)
         .get('/financial/entries')

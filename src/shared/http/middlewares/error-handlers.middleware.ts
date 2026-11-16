@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { AppError, BadRequestError, PayloadTooLargeError } from '../../errors/app-error';
+import { AppError, BadRequestError, PayloadTooLargeError, UpstreamAuthError } from '../../errors/app-error';
 
 // Errors raised by the JSON body parser (express.json()) carry a `type`; any other type stays unexpected
 function fromBodyParserError(err: unknown): unknown {
@@ -26,6 +26,10 @@ export function errorHandler(
 
   if (err instanceof AppError) {
     console.warn({ code: err.code, message: err.message, path: req.path, method: req.method });
+
+    if (err instanceof UpstreamAuthError && err.retryAfter !== undefined) {
+      res.set('Retry-After', String(err.retryAfter));
+    }
 
     return res.status(err.statusCode).json({
       message : err.message,

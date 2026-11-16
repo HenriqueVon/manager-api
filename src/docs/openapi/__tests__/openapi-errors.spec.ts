@@ -13,6 +13,7 @@ import {
   NotFoundError,
   ConflictError,
   PayloadTooLargeError,
+  UpstreamAuthError,
 } from '@shared/errors/app-error';
 import {
   appErrorResponseSchema,
@@ -29,6 +30,9 @@ const appErrors: Record<string, AppError> = {
   NotFoundError        : new NotFoundError(),
   ConflictError        : new ConflictError(),
   PayloadTooLargeError : new PayloadTooLargeError(),
+  UpstreamCodeInvalid  : new UpstreamAuthError(401, 'Invalid code', 'AUTH_CODE_INVALID'),
+  UpstreamRateLimited  : new UpstreamAuthError(429, 'Too many attempts', 'RATE_LIMITED', 30),
+  UpstreamUnavailable  : new UpstreamAuthError(503, 'Authentication service unavailable', 'AUTH_API_UNAVAILABLE'),
 };
 
 const app = express();
@@ -72,6 +76,20 @@ describe('Documented error responses', () => {
 
     expect(res.status).toBe(appErrors[name].statusCode);
     expect(appErrorResponseSchema.safeParse(res.body).success).toBe(true);
+  });
+
+  it('should send Retry-After when the authentication API asked the client to wait', async () => {
+    const res = await request(app).get('/app-error/UpstreamRateLimited');
+
+    expect(res.status).toBe(429);
+    expect(res.headers['retry-after']).toBe('30');
+  });
+
+  it('should not send Retry-After for an error without a wait time', async () => {
+    const res = await request(app).get('/app-error/UpstreamCodeInvalid');
+
+    expect(res.status).toBe(401);
+    expect(res.headers['retry-after']).toBeUndefined();
   });
 
   it('should return 400 with an AppErrorResponse for a malformed JSON body', async () => {

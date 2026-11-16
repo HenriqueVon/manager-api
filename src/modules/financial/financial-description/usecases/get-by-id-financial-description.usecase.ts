@@ -11,7 +11,7 @@ export class GetByIdFinancialDescriptionUseCase {
     private readonly financialDescriptionRepository: IFinancialDescriptionRepository
   ) {}
 
-  async execute(id: string): Promise<FinancialDescription | null> {
+  async execute(id: string): Promise<FinancialDescription> {
     const financialDescription = await this.financialDescriptionRepository.findById(id);
 
     if (!financialDescription) {

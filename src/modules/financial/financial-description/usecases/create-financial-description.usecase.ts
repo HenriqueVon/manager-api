@@ -1,6 +1,6 @@
 import { inject, injectable } from 'tsyringe';
 import { FinancialDescription } from '@prisma/client';
-import { IFinancialDescriptionRepository } from './../repositories/ifinancial-description.repository';
+import { IFinancialDescriptionRepository } from '../repositories/ifinancial-description.repository';
 import { FINANCIAL_DESCRIPTION_REPOSITORY } from '../repositories/financial-description.tokens';
 import { CreateFinancialDescriptionDto } from '../dtos';
 import { ConflictError } from '@shared/errors/app-error';

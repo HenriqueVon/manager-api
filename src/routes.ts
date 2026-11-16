@@ -3,6 +3,13 @@ import { Router } from 'express';
 const basePath = '/v1/api';
 const router = Router();
 
+// Session routes of the social login: they need the API key but no bearer token, so app.ts mounts
+// them before the authentication middleware
+export const authRoutes = Router();
+
+import authRoute from '@modules/auth/auth.routes';
+authRoutes.use(`${basePath}/auth`, authRoute);
+
 import ledgerRoute from '@modules/ledger/ledger.routes';
 router.use(`${basePath}/ledgers`, ledgerRoute);
 

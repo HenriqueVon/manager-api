@@ -40,6 +40,19 @@ export class ConflictError extends AppError {
   }
 }
 
+// An error answered by the authentication API, relayed with its own status and code.
+// retryAfter (seconds) comes from the Retry-After header of a 429.
+export class UpstreamAuthError extends AppError {
+  constructor(
+    statusCode: number,
+    message: string,
+    code?: string,
+    public readonly retryAfter?: number
+  ) {
+    super(statusCode, message, code);
+  }
+}
+
 export class PayloadTooLargeError extends AppError {
   constructor(message = 'Payload too large') {
     super(413, message, 'PAYLOAD_TOO_LARGE');

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { inject, injectable } from 'tsyringe';
+import { ListFinancialFundTransactionQueryDto } from './dtos';
 import {
   CreateFinancialFundTransactionUseCase,
   UpdateFinancialFundTransactionUseCase,
@@ -29,14 +30,8 @@ export class FinancialFundTransactionController {
   }
 
   async list(req: Request, res: Response) {
-    const financialFundTransactions = await this.listFinancialFundTransactionUseCase.execute({
-      limit          : req.query.limit ? Number(req.query.limit) : undefined,
-      offset         : req.query.offset ? Number(req.query.offset) : undefined,
-      orderBy        : req.query.orderBy as string | undefined,
-      orderDirection : req.query.orderDirection as 'asc' | 'desc' | undefined,
-    });
-    
-    console.log('FinancialFundTransactionController.list called with query:', req.query);
+    const { limit, offset, orderBy, orderDirection, ...filters } = req.query as unknown as ListFinancialFundTransactionQueryDto;
+    const financialFundTransactions = await this.listFinancialFundTransactionUseCase.execute({ limit, offset, orderBy, orderDirection }, filters);
 
     return res.status(200).json(financialFundTransactions);
   }

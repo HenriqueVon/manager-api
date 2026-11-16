@@ -38,6 +38,15 @@ export const env = {
 
   docsEnabled: optional('DOCS_ENABLED', 'false'),
 
+  // Base URL of the authentication API, including /v1/api
   authApiBaseUrl: required('AUTH_API_URL'),
+
+  // API key of the Client of this API in the authentication API
+  authApiKey: required('AUTH_API_KEY'),
+
+  // Only for a confidential Client: sent on the exchange of the social login code
+  authClientSecret: optional('AUTH_CLIENT_SECRET'),
+
+  authApiTimeoutMs: numberVar('AUTH_API_TIMEOUT_MS', 5000),
 
 } as const;

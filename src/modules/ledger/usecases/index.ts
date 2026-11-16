@@ -8,6 +8,6 @@ export {
   GetByIdLedgerUseCase,
   ListLedgerUseCase,
   CreateLedgerUseCase,
-  UpdateLedgerUseCase,  
+  UpdateLedgerUseCase,
   DeleteLedgerUseCase
-}
+};

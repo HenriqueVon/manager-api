@@ -1,10 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FinancialDescription } from '@prisma/client';
 import { UpdateFinancialDescriptionUseCase } from '../../usecases/update-financial-description.usecase';
-import type { IFinancialDescriptionRepository } from '../../repositories/ifinancial-description.repository';
+import { IFinancialDescriptionRepository } from '../../repositories/ifinancial-description.repository';
 
 describe('UpdateFinancialDescriptionUseCase', () => {
   let repo: IFinancialDescriptionRepository;
   let sut: UpdateFinancialDescriptionUseCase;
+
+  const id = 'record-1';
+
+  const record = {
+    id          : id,
+    description : 'SUPERMARKET',
+  } as unknown as FinancialDescription;
 
   beforeEach(() => {
     repo = {
@@ -15,86 +23,31 @@ describe('UpdateFinancialDescriptionUseCase', () => {
     sut = new UpdateFinancialDescriptionUseCase(repo);
   });
 
-  it('should trim + uppercase description, check uniqueness, then update', async () => {
-    (repo.findByDescription as any).mockResolvedValue(null);
+  it('should check description and update the financial description', async () => {
+    vi.mocked(repo.findByDescription).mockResolvedValue(null);
+    vi.mocked(repo.update).mockResolvedValue(record);
 
-    const updatedFinancialDescription = {
-      id          : '1',
-      description : 'ELECTRICITY',
-    };
+    const result = await sut.execute(id, { description: '  supermarket  ' });
 
-    (repo.update as any).mockResolvedValue(
-      updatedFinancialDescription
-    );
-
-    const input = {
-      description: '  electricity  ',
-    } as any;
-
-    const result = await sut.execute('1', input);
-
-    expect(repo.findByDescription).toHaveBeenCalledTimes(1);
-    expect(repo.findByDescription).toHaveBeenCalledWith(
-      'ELECTRICITY'
-    );
-
-    expect(repo.update).toHaveBeenCalledTimes(1);
-    expect(repo.update).toHaveBeenCalledWith('1', {
-      description: 'ELECTRICITY',
-    });
-
-    expect(result).toBe(updatedFinancialDescription);
+    expect(repo.findByDescription).toHaveBeenCalledWith('SUPERMARKET');
+    expect(repo.update).toHaveBeenCalledWith(id, { description: 'SUPERMARKET' });
+    expect(result).toBe(record);
   });
 
-  it('should allow update when existing description belongs to the same id', async () => {
-    (repo.findByDescription as any).mockResolvedValue({
-      id          : '1',
-      description : 'ELECTRICITY',
-    });
+  it('should allow the financial description to keep its description', async () => {
+    vi.mocked(repo.findByDescription).mockResolvedValue(record);
+    vi.mocked(repo.update).mockResolvedValue(record);
 
-    const updatedFinancialDescription = {
-      id          : '1',
-      description : 'ELECTRICITY',
-    };
-
-    (repo.update as any).mockResolvedValue(
-      updatedFinancialDescription
-    );
-
-    const result = await sut.execute('1', {
-      description: ' electricity ',
-    } as any);
-
-    expect(repo.findByDescription).toHaveBeenCalledWith(
-      'ELECTRICITY'
-    );
-
-    expect(repo.update).toHaveBeenCalledWith('1', {
-      description: 'ELECTRICITY',
-    });
-
-    expect(result).toBe(updatedFinancialDescription);
+    await expect(sut.execute(id, { description: '  supermarket  ' })).resolves.toBe(record);
   });
 
-  it('should throw ConflictError if description belongs to another id', async () => {
-    (repo.findByDescription as any).mockResolvedValue({
-      id          : 'another-id',
-      description : 'ELECTRICITY',
+  it('should throw ConflictError when description belongs to another financial description', async () => {
+    vi.mocked(repo.findByDescription).mockResolvedValue({ ...record, id: 'other-record' });
+
+    await expect(sut.execute(id, { description: '  supermarket  ' })).rejects.toMatchObject({
+      statusCode : 409,
+      message    : 'FinancialDescription description already exists!',
     });
-
-    await expect(
-      sut.execute('1', {
-        description: ' electricity ',
-      } as any)
-    ).rejects.toMatchObject({
-      message:
-        'FinancialDescription description already exists!',
-    });
-
-    expect(repo.findByDescription).toHaveBeenCalledWith(
-      'ELECTRICITY'
-    );
-
     expect(repo.update).not.toHaveBeenCalled();
   });
 });

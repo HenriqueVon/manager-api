@@ -48,7 +48,33 @@ describe('ListFinancialEntryUseCase', () => {
     const result = await sut.execute(params);
 
     expect(repo.findMany).toHaveBeenCalledTimes(1);
-    expect(repo.findMany).toHaveBeenCalledWith({}, params);
+    expect(repo.findMany).toHaveBeenCalledWith({}, params, { from: undefined, to: undefined });
     expect(result).toBe(paginatedResult);
+  });
+
+  it('should pass the ledger and the date range apart from the other filters', async () => {
+    const params = { limit: 10 };
+    (repo.findMany as any).mockResolvedValue({ items: [], total: 0 });
+
+    await sut.execute(params, {
+      ledgerId    : 'ledger-1',
+      dueDateFrom : new Date('2026-01-01T00:00:00.000Z'),
+      dueDateTo   : new Date('2026-01-31T00:00:00.000Z'),
+    });
+
+    expect(repo.findMany).toHaveBeenCalledWith(
+      { ledgerId: 'ledger-1' },
+      params,
+      { from: new Date('2026-01-01T00:00:00.000Z'), to: new Date('2026-01-31T00:00:00.000Z') }
+    );
+  });
+
+  it('should pass a range with only one end', async () => {
+    const params = { limit: 10 };
+    (repo.findMany as any).mockResolvedValue({ items: [], total: 0 });
+
+    await sut.execute(params, { dueDateFrom: new Date('2026-01-01T00:00:00.000Z') });
+
+    expect(repo.findMany).toHaveBeenCalledWith({}, params, { from: new Date('2026-01-01T00:00:00.000Z'), to: undefined });
   });
 });

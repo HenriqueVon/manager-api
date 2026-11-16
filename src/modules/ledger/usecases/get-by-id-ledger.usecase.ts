@@ -11,9 +11,13 @@ export class GetByIdLedgerUseCase {
     private readonly ledgerRepository: ILedgerRepository
   ) {}
 
-  async execute(id: string) : Promise<Ledger | null> {
+  async execute(id: string): Promise<Ledger> {
     const ledger = await this.ledgerRepository.findById(id);
-    if (!ledger) throw new NotFoundError();
+
+    if (!ledger) {
+      throw new NotFoundError();
+    }
+
     return ledger;
   }
 }

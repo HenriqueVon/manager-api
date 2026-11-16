@@ -6,8 +6,7 @@ import { PaginatedResponseDto } from '@shared/dtos/paginated-response.dto';
 export interface IFinancialCategoryRepository {
   create(data: CreateFinancialCategoryDto): Promise<FinancialCategory>;
   findById(id: string): Promise<FinancialCategory | null>;
-  findMany(filters?: Partial<FinancialCategory>, params?: ListParamsDto): Promise<PaginatedResponseDto<FinancialCategory>>;
+  findMany(filters?: Partial<FinancialCategory>, params?: ListParamsDto, search?: string): Promise<PaginatedResponseDto<FinancialCategory>>;
   update(id: string, data: UpdateFinancialCategoryDto): Promise<FinancialCategory>;
   delete(id: string): Promise<void>;
-  exists(id: string): Promise<boolean>;
 }
