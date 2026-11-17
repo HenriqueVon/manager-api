@@ -12,5 +12,9 @@ export interface IFinancialEntryRepository {
   findMany(filters?: Partial<FinancialEntry>, params?: ListParamsDto, dueDateRange?: DateRangeDto): Promise<PaginatedResponseDto<FinancialEntry>>;
   update(id: string, data: UpdateFinancialEntryDto): Promise<FinancialEntry>;
   delete(id: string): Promise<void>;
+  // The ids, among the given ones, that exist
+  findExistingIds(ids: string[]): Promise<string[]>;
+  // Deletes all the records with the given ids in a single statement
+  deleteMany(ids: string[]): Promise<void>;
   exists(id: string): Promise<boolean>;
 }

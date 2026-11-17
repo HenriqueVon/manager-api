@@ -103,6 +103,7 @@ An amount to pay or to receive, with a due date.
 - Belongs to a ledger and references a description, a fund and a category. *Enforced:* the fund and the category belong to the entry's ledger.
 - *Stored only:* `dueDate`, `paymentDate` (optional), `amountPaid` (default 0), `isMonthly`, `additionalDescription`. No rule links payment date, paid amount and amount, and `isMonthly` triggers no recurrence.
 - *Installments:* `POST /financial/entries/installments` splits a total in 2 to 480 monthly entries, saved together (all or none). The first due date is the one sent, the others follow month by month and keep the day, or the last day of a shorter month (31/01, 28/02, 31/03). The amount is split in cents and the last installment takes the cents left over (4000 in 3: 1333.33, 1333.33, 1333.34). Each `additionalDescription` ends with its number: "<complement> 1/3", or just "1/3" without a complement. They are created unpaid and not monthly. There is no link between the installments afterwards: each one is a plain entry.
+- *Bulk delete:* `POST /financial/entries/bulk-delete` deletes from 1 to 100 entries in one call (`{ "ids": [...] }`, a repeated id is deleted once). All or none: when some id does not exist, nothing is deleted and the `404` lists the missing ids in `ids`. Nothing references an entry, so a missing id is the only way it fails. The same call is the pattern for the other records, where an id that is in use will need its own rule.
 
 ### 2.8 Fund Transaction (Lançamento de caixa)
 

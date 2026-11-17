@@ -82,6 +82,19 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
     await prismaCall(() => prisma.financialEntry.delete({ where: { id } }));
   }
 
+  async findExistingIds(ids: string[]): Promise<string[]> {
+    const entries = await prisma.financialEntry.findMany({
+      where  : { id: { in: ids } },
+      select : { id: true },
+    });
+
+    return entries.map((entry) => entry.id);
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await prismaCall(() => prisma.financialEntry.deleteMany({ where: { id: { in: ids } } }));
+  }
+
   async exists(id: string): Promise<boolean> {
     const count = await prisma.financialEntry.count({ where: { id } });
     return count > 0;

@@ -34,6 +34,13 @@ export class NotFoundError extends AppError {
   }
 }
 
+// Several records were asked for and some do not exist: the 404 lists their ids, and nothing is changed.
+export class ResourcesNotFoundError extends NotFoundError {
+  constructor(public readonly ids: string[]) {
+    super('Some resources were not found');
+  }
+}
+
 export class ConflictError extends AppError {
   constructor(message = 'Resource already exists') {
     super(409, message, 'CONFLICT');

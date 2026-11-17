@@ -26,6 +26,8 @@ export const appErrorResponseSchema = z.object({
     'PAYLOAD_TOO_LARGE',
     ...upstreamAuthErrorCodes,
   ]),
+  // Only on the 404 of a request for several records: the ids that do not exist
+  ids: z.array(z.string()).optional(),
 });
 
 // Body produced by validateRequest when params, query or body fail Zod validation

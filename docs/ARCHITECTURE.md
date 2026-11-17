@@ -436,10 +436,11 @@ There are five distinct runtime behaviors.
   - `Unauthorized`: API key middleware and `AuthService` (missing or malformed `Authorization`). `Forbidden`: API key middleware.
   - `UpstreamAuthError`: `AuthService`, for every failed call to the authentication API.
   - `NotFoundError`: the nine get-by-id use cases, and `prismaCall` (P2025, update or delete of a missing record).
+  - `ResourcesNotFoundError` (a `NotFoundError`): the bulk-delete use case of entries, when some id does not exist; its body also carries `ids`, the ids that are missing.
   - `ConflictError`: uniqueness checks in create/update use cases, and `prismaCall` (P2002 unique violation, P2003 foreign-key violation).
   - `BadRequestError`: the fund-transaction create/update use cases, and `errorHandler` for malformed JSON bodies.
   - `PayloadTooLargeError`: `errorHandler`, for a JSON body above the body parser's limit.
-- [`errorHandler`](../src/shared/http/middlewares/error-handlers.middleware.ts) logs with `console.warn` and responds `err.statusCode` with `{ message, code }`.
+- [`errorHandler`](../src/shared/http/middlewares/error-handlers.middleware.ts) logs with `console.warn` and responds `err.statusCode` with `{ message, code }`.  A `ResourcesNotFoundError` adds `ids` to the body.
 
 ### Body parser errors
 

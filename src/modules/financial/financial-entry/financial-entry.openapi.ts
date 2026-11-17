@@ -1,6 +1,7 @@
 import { openApiRegistry } from '@docs/openapi/registry';
 import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
+import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
@@ -19,6 +20,11 @@ const createFinancialEntryInput = openApiRegistry.register(
 const createFinancialEntryInstallmentsInput = openApiRegistry.register(
   'CreateFinancialEntryInstallmentsInput',
   createFinancialEntryInstallmentsSchema
+);
+
+const bulkDeleteFinancialEntryInput = openApiRegistry.register(
+  'BulkDeleteFinancialEntryInput',
+  bulkDeleteSchema
 );
 
 // minProperties documents the "at least one field" refine rule
@@ -169,6 +175,32 @@ openApiRegistry.registerPath({
     },
     400 : responseRef('ValidationError'),
     409 : responseRef('Conflict'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'post',
+  path        : '/financial/entries/bulk-delete',
+  tags        : ['Financial Entries'],
+  summary     : 'Delete several',
+  description : 'Deletes up to 100 entries in one call, all or none. When some id does not exist, nothing is deleted and the 404 lists the ids that are missing in ids.',
+  operationId : 'bulkDeleteFinancialEntry',
+  request     : {
+    body: {
+      required : true,
+      content  : {
+        'application/json': {
+          schema  : bulkDeleteFinancialEntryInput,
+          example : { ids: ['cm1234567890abcdefghijkl', 'cm1234567890abcdefghijkm'] },
+        },
+      },
+    },
+  },
+  responses: {
+    204 : { description: 'FinancialEntry records deleted successfully' },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
     ...globalErrorResponses,
   },
 });
