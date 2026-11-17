@@ -3,10 +3,12 @@ import { inject, injectable } from 'tsyringe';
 import { ListFinancialEntryQueryDto } from './dtos';
 import {
   CreateFinancialEntryUseCase,
+  CreateFinancialEntryInstallmentsUseCase,
   UpdateFinancialEntryUseCase,
   ListFinancialEntryUseCase,
   GetByIdFinancialEntryUseCase,
-  DeleteFinancialEntryUseCase
+  DeleteFinancialEntryUseCase,
+  BulkDeleteFinancialEntryUseCase
 } from './usecases';
 
 @injectable()
@@ -14,6 +16,8 @@ export class FinancialEntryController {
   constructor(
     @inject(CreateFinancialEntryUseCase)
     private readonly createFinancialEntryUseCase: CreateFinancialEntryUseCase,
+    @inject(CreateFinancialEntryInstallmentsUseCase)
+    private readonly createFinancialEntryInstallmentsUseCase: CreateFinancialEntryInstallmentsUseCase,
     @inject(ListFinancialEntryUseCase)
     private readonly listFinancialEntryUseCase: ListFinancialEntryUseCase,
     @inject(UpdateFinancialEntryUseCase)
@@ -21,12 +25,19 @@ export class FinancialEntryController {
     @inject(GetByIdFinancialEntryUseCase)
     private readonly getByIdFinancialEntryUseCase: GetByIdFinancialEntryUseCase,
     @inject(DeleteFinancialEntryUseCase)
-    private readonly deleteFinancialEntryUseCase: DeleteFinancialEntryUseCase
+    private readonly deleteFinancialEntryUseCase: DeleteFinancialEntryUseCase,
+    @inject(BulkDeleteFinancialEntryUseCase)
+    private readonly bulkDeleteFinancialEntryUseCase: BulkDeleteFinancialEntryUseCase
   ) {}
 
   async create(req: Request, res: Response) {
     const financialEntry = await this.createFinancialEntryUseCase.execute(req.body);
     return res.status(201).json(financialEntry);
+  }
+
+  async createInstallments(req: Request, res: Response) {
+    const financialEntries = await this.createFinancialEntryInstallmentsUseCase.execute(req.body);
+    return res.status(201).json(financialEntries);
   }
 
   async list(req: Request, res: Response) {
@@ -48,6 +59,11 @@ export class FinancialEntryController {
 
   async delete(req: Request, res: Response) {
     await this.deleteFinancialEntryUseCase.execute(req.params.id);
+    return res.status(204).send();
+  }
+
+  async bulkDelete(req: Request, res: Response) {
+    await this.bulkDeleteFinancialEntryUseCase.execute(req.body);
     return res.status(204).send();
   }
 }

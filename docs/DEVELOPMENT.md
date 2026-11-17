@@ -386,7 +386,7 @@ Add cases to `<m>.routes.spec.ts` for the validation rules, and a use case spec 
 - Date transforms differ:
   - entries: `new Date(`${value}T00:00:00.000Z`)` ([create-financial-entry.schema.ts](../src/modules/financial/financial-entry/schemas/create-financial-entry.schema.ts));
   - fund transactions: `new Date(value)` ([create-financial-fund-transaction.schema.ts](../src/modules/financial/financial-fund-transaction/schemas/create-financial-fund-transaction.schema.ts)).
-- `additionalDescription` is required in the entry and fund-transaction create schemas while the column is nullable.
+- `additionalDescription` is optional (and nullable) in the entry schemas, but still required in the fund-transaction create schema, while the column is nullable.
 
 ---
 
@@ -509,7 +509,7 @@ import { prisma } from '@services/database/prisma/prisma.client';
 | `findMany(filters, params)` | `findMany` + `count` | no |
 | `exists(id)` | `count({ where: { id } }) > 0` | no |
 
-[`prismaCall`](../src/shared/database/prisma/prisma-call.ts) converts Prisma `P2002` (unique violation) and `P2003` (foreign-key violation) into `ConflictError`, `P2025` (record to update or delete not found) into `NotFoundError`, and rethrows everything else unchanged. This is where update and delete get their 404, and where foreign-key and ledger-mismatch errors get their 409. No repository uses `$transaction` or raw SQL.
+[`prismaCall`](../src/shared/database/prisma/prisma-call.ts) converts Prisma `P2002` (unique violation) and `P2003` (foreign-key violation) into `ConflictError`, `P2025` (record to update or delete not found) into `NotFoundError`, and rethrows everything else unchanged. This is where update and delete get their 404, and where foreign-key and ledger-mismatch errors get their 409. Only `FinancialEntryRepository.createMany` uses `$transaction` (all the installments or none), and no repository uses raw SQL.
 
 ### Pagination, `findMany`, count (invariant)
 
