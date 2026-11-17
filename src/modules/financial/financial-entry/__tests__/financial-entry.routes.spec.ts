@@ -195,6 +195,25 @@ describe('FinancialEntry routes', () => {
       expect(requestReceived.body.paymentDate).toBeNull();
     });
 
+    it('should accept a body without additionalDescription', async () => {
+      const body: Partial<typeof validBody> = { ...validBody };
+      delete body.additionalDescription;
+
+      const response = await request(app)
+        .post('/financial/entries')
+        .send(body);
+
+      expect(response.status).toBe(201);
+    });
+
+    it('should accept additionalDescription as null', async () => {
+      const response = await request(app)
+        .post('/financial/entries')
+        .send({ ...validBody, additionalDescription: null });
+
+      expect(response.status).toBe(201);
+    });
+
     it('should return 400 when dueDate is invalid', async () => {
       const response = await request(app)
         .post('/financial/entries')
@@ -314,6 +333,17 @@ describe('FinancialEntry routes', () => {
         dueDate     : new Date('2026-08-15T00:00:00.000Z'),
         paymentDate : new Date('2026-08-16T00:00:00.000Z'),
       });
+    });
+
+    it('should allow clearing additionalDescription with null', async () => {
+      const response = await request(app)
+        .patch(`/financial/entries/${validCuid}`)
+        .send({ additionalDescription: null });
+
+      expect(response.status).toBe(200);
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+      expect(requestReceived.body).toEqual({ additionalDescription: null });
     });
 
     it('should allow setting paymentDate to null', async () => {

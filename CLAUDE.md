@@ -111,6 +111,7 @@ At the end of every task, check whether anything was **discovered** on the way t
 
 ## 10. Git Rules
 
+- **Before writing any code, check the current branch (`git branch --show-current`). It must be `develop`.** If it is not, stop, report the branch and ask the user to switch. Do not switch, pull or create branches on your own.
 - Do not commit.
 - Do not push. A push to `develop` or `main` triggers a deploy.
 - Create a branch only when the user asks. Otherwise, do not switch, create or delete branches.
