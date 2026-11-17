@@ -6,7 +6,8 @@ import {
   UpdateFinancialDescriptionUseCase,
   ListFinancialDescriptionUseCase,
   GetByIdFinancialDescriptionUseCase,
-  DeleteFinancialDescriptionUseCase
+  DeleteFinancialDescriptionUseCase,
+  BulkDeleteFinancialDescriptionUseCase
 } from './usecases';
 
 @injectable()
@@ -21,12 +22,19 @@ export class FinancialDescriptionController {
     @inject(GetByIdFinancialDescriptionUseCase)
     private readonly getByIdFinancialDescriptionUseCase: GetByIdFinancialDescriptionUseCase,
     @inject(DeleteFinancialDescriptionUseCase)
-    private readonly deleteFinancialDescriptionUseCase: DeleteFinancialDescriptionUseCase
+    private readonly deleteFinancialDescriptionUseCase: DeleteFinancialDescriptionUseCase,
+    @inject(BulkDeleteFinancialDescriptionUseCase)
+    private readonly bulkDeleteFinancialDescriptionUseCase: BulkDeleteFinancialDescriptionUseCase
   ) {}
 
   async create(req: Request, res: Response) {
     const financialDescription = await this.createFinancialDescriptionUseCase.execute(req.body);
     return res.status(201).json(financialDescription);
+  }
+
+  async bulkDelete(req: Request, res: Response) {
+    await this.bulkDeleteFinancialDescriptionUseCase.execute(req.body);
+    return res.status(204).send();
   }
 
   async list(req: Request, res: Response) {

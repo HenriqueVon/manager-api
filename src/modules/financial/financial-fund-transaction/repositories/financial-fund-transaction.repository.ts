@@ -75,6 +75,19 @@ export class FinancialFundTransactionRepository implements IFinancialFundTransac
     await prismaCall(() => prisma.financialFundTransaction.delete({ where: { id } }));
   }
 
+  async findExistingIds(ids: string[]): Promise<string[]> {
+    const records = await prisma.financialFundTransaction.findMany({
+      where  : { id: { in: ids } },
+      select : { id: true },
+    });
+
+    return records.map((record) => record.id);
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await prismaCall(() => prisma.financialFundTransaction.deleteMany({ where: { id: { in: ids } } }));
+  }
+
   async exists(id: string): Promise<boolean> {
     const count = await prisma.financialFundTransaction.count({ where: { id } });
     return count > 0;

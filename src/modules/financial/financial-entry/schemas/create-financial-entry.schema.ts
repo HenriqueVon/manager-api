@@ -17,7 +17,7 @@ export const createFinancialEntrySchema = z.object({
     .nullable(),    
   amount                 : z.number().min(0, 'Amount must be greater than or equal to 0'),
   amountPaid             : z.number().min(0, 'AmountPaid must be greater than or equal to 0').optional().default(0),
-  additionalDescription  : z.string().min(2, 'AdditionalDescription must have at least 2 characters').max(100, 'AdditionalDescription must have at most 100 characters'),
+  additionalDescription  : z.string().min(2, 'AdditionalDescription must have at least 2 characters').max(100, 'AdditionalDescription must have at most 100 characters').optional().nullable(),
   isMonthly              : z.boolean(),
   ledgerId               : z.string(),
   financialDescriptionId : z.string(),

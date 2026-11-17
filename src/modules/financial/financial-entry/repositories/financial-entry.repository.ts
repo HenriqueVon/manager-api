@@ -14,6 +14,12 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
     return prismaCall(() => prisma.financialEntry.create({ data }));
   }
 
+  async createMany(data: CreateFinancialEntryDto[]): Promise<FinancialEntry[]> {
+    return prismaCall(() => prisma.$transaction(
+      data.map((entry) => prisma.financialEntry.create({ data: entry }))
+    ));
+  }
+
   async findById(id: string): Promise<FinancialEntry | null> {
     return prisma.financialEntry.findUnique({
       where: { id },
@@ -74,6 +80,19 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
 
   async delete(id: string): Promise<void> {
     await prismaCall(() => prisma.financialEntry.delete({ where: { id } }));
+  }
+
+  async findExistingIds(ids: string[]): Promise<string[]> {
+    const entries = await prisma.financialEntry.findMany({
+      where  : { id: { in: ids } },
+      select : { id: true },
+    });
+
+    return entries.map((entry) => entry.id);
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await prismaCall(() => prisma.financialEntry.deleteMany({ where: { id: { in: ids } } }));
   }
 
   async exists(id: string): Promise<boolean> {

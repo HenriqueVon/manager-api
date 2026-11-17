@@ -3,6 +3,7 @@ import { controllerAdapter } from '@shared/http/controller.adapter';
 import { validateRequest } from '@shared/http/middlewares/validate.middleware';
 import { LedgerController } from './ledger.controller';
 import { idParamsSchema } from '@shared/schemas/id.schema';
+import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createLedgerSchema,
   updateLedgerSchema,
@@ -21,6 +22,12 @@ router.post(
   '/',
   validateRequest({ body: createLedgerSchema }),
   controllerAdapter(LedgerController, 'create')
+);
+
+router.post(
+  '/bulk-delete',
+  validateRequest({ body: bulkDeleteSchema }),
+  controllerAdapter(LedgerController, 'bulkDelete')
 );
 
 router.get(

@@ -85,4 +85,32 @@ export class FinancialDescriptionRepository implements IFinancialDescriptionRepo
   async delete(id: string): Promise<void> {
     await prismaCall(() => prisma.financialDescription.delete({ where: { id } }));
   }
+
+  async findExistingIds(ids: string[]): Promise<string[]> {
+    const records = await prisma.financialDescription.findMany({
+      where  : { id: { in: ids } },
+      select : { id: true },
+    });
+
+    return records.map((record) => record.id);
+  }
+
+  async findIdsInUse(ids: string[]): Promise<string[]> {
+    const records = await prisma.financialDescription.findMany({
+      where: {
+        id : { in: ids },
+        OR : [
+          { financialEntries: { some: {} } },
+          { financialFundTransactions: { some: {} } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    return records.map((record) => record.id);
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await prismaCall(() => prisma.financialDescription.deleteMany({ where: { id: { in: ids } } }));
+  }
 }

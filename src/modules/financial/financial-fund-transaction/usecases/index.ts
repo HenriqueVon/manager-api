@@ -3,11 +3,13 @@ import { UpdateFinancialFundTransactionUseCase } from './update-financial-fund-t
 import { ListFinancialFundTransactionUseCase } from './list-financial-fund-transaction.usecase';
 import { GetByIdFinancialFundTransactionUseCase } from './get-by-id-financial-fund-transaction.usecase';
 import { DeleteFinancialFundTransactionUseCase } from './delete-financial-fund-transaction.usecase';
+import { BulkDeleteFinancialFundTransactionUseCase } from './bulk-delete-financial-fund-transaction.usecase';
 
 export {
   GetByIdFinancialFundTransactionUseCase,
   ListFinancialFundTransactionUseCase,
   CreateFinancialFundTransactionUseCase,
   UpdateFinancialFundTransactionUseCase,
-  DeleteFinancialFundTransactionUseCase
+  DeleteFinancialFundTransactionUseCase,
+  BulkDeleteFinancialFundTransactionUseCase
 };

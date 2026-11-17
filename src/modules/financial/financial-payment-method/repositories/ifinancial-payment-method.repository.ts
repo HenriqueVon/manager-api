@@ -10,5 +10,9 @@ export interface IFinancialPaymentMethodRepository {
   findMany(filters?: Partial<FinancialPaymentMethod>, params?: ListParamsDto): Promise<PaginatedResponseDto<FinancialPaymentMethod>>;
   update(id: string, data: UpdateFinancialPaymentMethodDto): Promise<FinancialPaymentMethod>;
   delete(id: string): Promise<void>;
+  // The ids, among the given ones, that exist
+  findExistingIds(ids: string[]): Promise<string[]>;
+  // Deletes all the records with the given ids in a single statement
+  deleteMany(ids: string[]): Promise<void>;
   exists(id: string): Promise<boolean>;
 }

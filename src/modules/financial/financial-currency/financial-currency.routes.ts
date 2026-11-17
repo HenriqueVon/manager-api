@@ -3,6 +3,7 @@ import { controllerAdapter } from '@shared/http/controller.adapter';
 import { validateRequest } from '@shared/http/middlewares/validate.middleware';
 import { FinancialCurrencyController } from './financial-currency.controller';
 import { idParamsSchema } from '@shared/schemas/id.schema';
+import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createFinancialCurrencySchema,
   updateFinancialCurrencySchema,
@@ -21,6 +22,12 @@ router.post(
   '/',
   validateRequest({ body: createFinancialCurrencySchema }),
   controllerAdapter(FinancialCurrencyController, 'create')
+);
+
+router.post(
+  '/bulk-delete',
+  validateRequest({ body: bulkDeleteSchema }),
+  controllerAdapter(FinancialCurrencyController, 'bulkDelete')
 );
 
 router.get(

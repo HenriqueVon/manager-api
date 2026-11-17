@@ -70,6 +70,34 @@ export class FinancialCurrencyRepository implements IFinancialCurrencyRepository
     await prismaCall(() => prisma.financialCurrency.delete({ where: { id } }));
   }
 
+  async findExistingIds(ids: string[]): Promise<string[]> {
+    const records = await prisma.financialCurrency.findMany({
+      where  : { id: { in: ids } },
+      select : { id: true },
+    });
+
+    return records.map((record) => record.id);
+  }
+
+  async findIdsInUse(ids: string[]): Promise<string[]> {
+    const records = await prisma.financialCurrency.findMany({
+      where: {
+        id : { in: ids },
+        OR : [
+          { financialBankAccounts: { some: {} } },
+          { financialFunds: { some: {} } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    return records.map((record) => record.id);
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await prismaCall(() => prisma.financialCurrency.deleteMany({ where: { id: { in: ids } } }));
+  }
+
   async exists(id: string): Promise<boolean> {
     const count = await prisma.financialCurrency.count({ where: { id } });
     return count > 0;

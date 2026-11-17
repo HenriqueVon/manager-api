@@ -85,4 +85,35 @@ export class LedgerRepository implements ILedgerRepository {
   async delete(id: string): Promise<void> {
     await prismaCall(() => prisma.ledger.delete({ where: { id } }));
   }
+
+  async findExistingIds(ids: string[]): Promise<string[]> {
+    const records = await prisma.ledger.findMany({
+      where  : { id: { in: ids } },
+      select : { id: true },
+    });
+
+    return records.map((record) => record.id);
+  }
+
+  async findIdsInUse(ids: string[]): Promise<string[]> {
+    const records = await prisma.ledger.findMany({
+      where: {
+        id : { in: ids },
+        OR : [
+          { financialBankAccounts: { some: {} } },
+          { financialFunds: { some: {} } },
+          { financialCategories: { some: {} } },
+          { financialEntries: { some: {} } },
+          { financialFundTransactions: { some: {} } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    return records.map((record) => record.id);
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await prismaCall(() => prisma.ledger.deleteMany({ where: { id: { in: ids } } }));
+  }
 }
