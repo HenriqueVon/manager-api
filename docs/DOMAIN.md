@@ -102,6 +102,7 @@ An amount to pay or to receive, with a due date.
 - *Enforced:* `amount` ≥ 0 and `amountPaid` ≥ 0, on create and update (`400` otherwise).
 - Belongs to a ledger and references a description, a fund and a category. *Enforced:* the fund and the category belong to the entry's ledger.
 - *Stored only:* `dueDate`, `paymentDate` (optional), `amountPaid` (default 0), `isMonthly`, `additionalDescription`. No rule links payment date, paid amount and amount, and `isMonthly` triggers no recurrence.
+- *Installments:* `POST /financial/entries/installments` splits a total in 2 to 480 monthly entries, saved together (all or none). The first due date is the one sent, the others follow month by month and keep the day, or the last day of a shorter month (31/01, 28/02, 31/03). The amount is split in cents and the last installment takes the cents left over (4000 in 3: 1333.33, 1333.33, 1333.34). Each `additionalDescription` ends with its number: "<complement> 1/3", or just "1/3" without a complement. They are created unpaid and not monthly. There is no link between the installments afterwards: each one is a plain entry.
 
 ### 2.8 Fund Transaction (Lançamento de caixa)
 
@@ -132,7 +133,7 @@ Decisions not taken yet. Do not implement an answer without a decision.
 | Where is the payment method used (e.g. on entries)? | Not referenced by any record |
 | Must `amountPaid` ≤ `amount` on entries? | Not checked |
 | What does `isMonthly` imply (recurrence)? | Stored only |
-| Is `additionalDescription` required? | Required by the API on create, nullable in the database |
+| Is `additionalDescription` required? | Optional on entries (missing or null, nullable in the database). Still required on fund transactions, undecided |
 | Does the ledger `type` restrict currencies? | No restriction |
 
 ---

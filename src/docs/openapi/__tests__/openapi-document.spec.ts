@@ -118,7 +118,8 @@ describe('OpenAPI document', () => {
         // The session routes have no stored record
         if (isAuthOperation(operation)) return;
 
-        const itemPath = path.endsWith('{id}') ? path : `${path}/{id}`;
+        // /financial/entries/installments creates entries, so its record is the one of /financial/entries/{id}
+        const itemPath = path.endsWith('{id}') ? path : `${path.replace(/\/installments$/, '')}/{id}`;
         const model = document.paths[itemPath].get.responses['200'].content['application/json'].schema.$ref.split('/').pop();
 
         const writesForeignKeys = (method === 'post' || method === 'patch') && holders.has(model);

@@ -3,15 +3,22 @@ import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
 import {
   createFinancialEntrySchema,
+  createFinancialEntryInstallmentsSchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema,
   financialEntrySchema,
+  financialEntryInstallmentsResponseSchema,
   listFinancialEntryResponseSchema,
 } from './schemas';
 
 const createFinancialEntryInput = openApiRegistry.register(
   'CreateFinancialEntryInput',
   createFinancialEntrySchema
+);
+
+const createFinancialEntryInstallmentsInput = openApiRegistry.register(
+  'CreateFinancialEntryInstallmentsInput',
+  createFinancialEntryInstallmentsSchema
 );
 
 // minProperties documents the "at least one field" refine rule
@@ -50,6 +57,30 @@ const financialEntryExample = {
   createdAt              : '2026-01-01T00:00:00.000Z',
   updatedAt              : '2026-01-01T00:00:00.000Z',
 };
+
+const financialEntryInstallmentsInputExample = {
+  type                   : 'PAYABLE',
+  dueDate                : '2026-11-05',
+  amount                 : 3000,
+  installments           : 3,
+  additionalDescription  : 'Flight ticket',
+  ledgerId               : 'cm1234567890abcdefghijkl',
+  financialDescriptionId : 'cm1234567890abcdefghijkl',
+  financialFundId        : 'cm1234567890abcdefghijkl',
+  financialCategoryId    : 'cm1234567890abcdefghijkl',
+};
+
+const financialEntryInstallmentsExample = [
+  { dueDate: '2026-11-05T00:00:00.000Z', number: 1 },
+  { dueDate: '2026-12-05T00:00:00.000Z', number: 2 },
+  { dueDate: '2027-01-05T00:00:00.000Z', number: 3 },
+].map(({ dueDate, number }) => ({
+  ...financialEntryExample,
+  dueDate,
+  paymentDate           : null,
+  amount                : '1000',
+  additionalDescription : `Flight ticket ${number}/3`,
+}));
 
 openApiRegistry.registerPath({
   method      : 'get',
@@ -99,6 +130,40 @@ openApiRegistry.registerPath({
         'application/json': {
           schema  : financialEntrySchema,
           example : financialEntryExample,
+        },
+      },
+    },
+    400 : responseRef('ValidationError'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'post',
+  path        : '/financial/entries/installments',
+  tags        : ['Financial Entries'],
+  summary     : 'Create in installments',
+  description : 'Splits the amount in monthly entries, saved together: all of them or none. The last installment takes the cents left over. Each additionalDescription ends with its number, such as "Flight ticket 1/3".',
+  operationId : 'createFinancialEntryInstallments',
+  request     : {
+    body: {
+      required : true,
+      content  : {
+        'application/json': {
+          schema  : createFinancialEntryInstallmentsInput,
+          example : financialEntryInstallmentsInputExample,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description : 'FinancialEntry installments created successfully',
+      content     : {
+        'application/json': {
+          schema  : financialEntryInstallmentsResponseSchema,
+          example : financialEntryInstallmentsExample,
         },
       },
     },

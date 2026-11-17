@@ -14,6 +14,12 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
     return prismaCall(() => prisma.financialEntry.create({ data }));
   }
 
+  async createMany(data: CreateFinancialEntryDto[]): Promise<FinancialEntry[]> {
+    return prismaCall(() => prisma.$transaction(
+      data.map((entry) => prisma.financialEntry.create({ data: entry }))
+    ));
+  }
+
   async findById(id: string): Promise<FinancialEntry | null> {
     return prisma.financialEntry.findUnique({
       where: { id },

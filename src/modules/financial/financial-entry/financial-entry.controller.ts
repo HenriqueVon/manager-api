@@ -3,6 +3,7 @@ import { inject, injectable } from 'tsyringe';
 import { ListFinancialEntryQueryDto } from './dtos';
 import {
   CreateFinancialEntryUseCase,
+  CreateFinancialEntryInstallmentsUseCase,
   UpdateFinancialEntryUseCase,
   ListFinancialEntryUseCase,
   GetByIdFinancialEntryUseCase,
@@ -14,6 +15,8 @@ export class FinancialEntryController {
   constructor(
     @inject(CreateFinancialEntryUseCase)
     private readonly createFinancialEntryUseCase: CreateFinancialEntryUseCase,
+    @inject(CreateFinancialEntryInstallmentsUseCase)
+    private readonly createFinancialEntryInstallmentsUseCase: CreateFinancialEntryInstallmentsUseCase,
     @inject(ListFinancialEntryUseCase)
     private readonly listFinancialEntryUseCase: ListFinancialEntryUseCase,
     @inject(UpdateFinancialEntryUseCase)
@@ -27,6 +30,11 @@ export class FinancialEntryController {
   async create(req: Request, res: Response) {
     const financialEntry = await this.createFinancialEntryUseCase.execute(req.body);
     return res.status(201).json(financialEntry);
+  }
+
+  async createInstallments(req: Request, res: Response) {
+    const financialEntries = await this.createFinancialEntryInstallmentsUseCase.execute(req.body);
+    return res.status(201).json(financialEntries);
   }
 
   async list(req: Request, res: Response) {

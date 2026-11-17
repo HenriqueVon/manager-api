@@ -6,6 +6,8 @@ import { PaginatedResponseDto } from '@shared/dtos/paginated-response.dto';
 
 export interface IFinancialEntryRepository {
   create(data: CreateFinancialEntryDto): Promise<FinancialEntry>;
+  // Creates all the entries or none of them
+  createMany(data: CreateFinancialEntryDto[]): Promise<FinancialEntry[]>;
   findById(id: string): Promise<FinancialEntry | null>;
   findMany(filters?: Partial<FinancialEntry>, params?: ListParamsDto, dueDateRange?: DateRangeDto): Promise<PaginatedResponseDto<FinancialEntry>>;
   update(id: string, data: UpdateFinancialEntryDto): Promise<FinancialEntry>;

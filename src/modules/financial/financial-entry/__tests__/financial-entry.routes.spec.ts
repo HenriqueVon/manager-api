@@ -12,7 +12,7 @@ vi.mock('@shared/http/controller.adapter', () => ({
     return (req: Request, res: Response) => {
       controllerSpy(method, req);
 
-      if (method === 'create') {
+      if (method === 'create' || method === 'createInstallments') {
         return res.status(201).json({ ok: true });
       }
 
@@ -272,6 +272,107 @@ describe('FinancialEntry routes', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.message).toBe('Invalid body');
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /financial/entries/installments', () => {
+    const installmentsBody = {
+      type                   : 'PAYABLE',
+      dueDate                : '2026-11-05',
+      amount                 : 4000,
+      installments           : 3,
+      additionalDescription  : 'FLIGHT TICKET',
+      ledgerId               : validCuid,
+      financialDescriptionId : validCuid,
+      financialFundId        : validCuid,
+      financialCategoryId    : validCuid,
+    };
+
+    it('should transform the date and call the createInstallments controller', async () => {
+      const response = await request(app)
+        .post('/financial/entries/installments')
+        .send(installmentsBody);
+
+      expect(response.status).toBe(201);
+      expect(controllerSpy).toHaveBeenCalledWith('createInstallments', expect.anything());
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+      expect(requestReceived.body.dueDate).toEqual(new Date('2026-11-05T00:00:00.000Z'));
+      expect(requestReceived.body.installments).toBe(3);
+    });
+
+    it('should accept a body without additionalDescription', async () => {
+      const body: Partial<typeof installmentsBody> = { ...installmentsBody };
+      delete body.additionalDescription;
+
+      const response = await request(app)
+        .post('/financial/entries/installments')
+        .send(body);
+
+      expect(response.status).toBe(201);
+    });
+
+    it('should accept the limits of installments', async () => {
+      for (const installments of [2, 480]) {
+        const response = await request(app)
+          .post('/financial/entries/installments')
+          .send({ ...installmentsBody, installments });
+
+        expect(response.status).toBe(201);
+      }
+    });
+
+    it('should return 400 when installments is out of range or not an integer', async () => {
+      for (const installments of [1, 0, 481, 2.5, '3']) {
+        const response = await request(app)
+          .post('/financial/entries/installments')
+          .send({ ...installmentsBody, installments });
+
+        expect(response.status).toBe(400);
+      }
+
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when installments is missing', async () => {
+      const body: Partial<typeof installmentsBody> = { ...installmentsBody };
+      delete body.installments;
+
+      const response = await request(app)
+        .post('/financial/entries/installments')
+        .send(body);
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 400 when the amount is less than one cent per installment', async () => {
+      const response = await request(app)
+        .post('/financial/entries/installments')
+        .send({ ...installmentsBody, amount: 0.02, installments: 3 });
+
+      expect(response.status).toBe(400);
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when the complement leaves no room for the installment number', async () => {
+      const response = await request(app)
+        .post('/financial/entries/installments')
+        .send({ ...installmentsBody, installments: 480, additionalDescription: 'A'.repeat(95) });
+
+      expect(response.status).toBe(400);
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 for the fields that do not apply to installments', async () => {
+      for (const extra of [{ paymentDate: '2026-11-05' }, { amountPaid: 10 }, { isMonthly: true }]) {
+        const response = await request(app)
+          .post('/financial/entries/installments')
+          .send({ ...installmentsBody, ...extra });
+
+        expect(response.status).toBe(400);
+      }
+
       expect(controllerSpy).not.toHaveBeenCalled();
     });
   });

@@ -5,6 +5,7 @@ import { FinancialEntryController } from './financial-entry.controller';
 import { idParamsSchema } from '@shared/schemas/id.schema';
 import {
   createFinancialEntrySchema,
+  createFinancialEntryInstallmentsSchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema
 } from './schemas';
@@ -21,6 +22,12 @@ router.post(
   '/',
   validateRequest({ body: createFinancialEntrySchema }),
   controllerAdapter(FinancialEntryController, 'create')
+);
+
+router.post(
+  '/installments',
+  validateRequest({ body: createFinancialEntryInstallmentsSchema }),
+  controllerAdapter(FinancialEntryController, 'createInstallments')
 );
 
 router.get(

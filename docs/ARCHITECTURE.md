@@ -311,7 +311,7 @@ The client lives in [`prisma.client.ts`](../src/services/database/prisma/prisma.
 - `exists(id)` → `count({ where: { id } }) > 0`;
 - in ledger, currency, payment-method and bank-account, `findByName(name)`; in description, `findByDescription(description)`. Both are `findUnique` on the unique column.
 
-All write operations go through `prismaCall`; no read operation does. No repository uses `$transaction` or raw SQL.
+All write operations go through `prismaCall`; no read operation does. Only `FinancialEntryRepository.createMany` uses `$transaction` (to save the installments of an entry together); no repository uses raw SQL.
 
 ### `prismaCall`
 
@@ -605,7 +605,7 @@ These rules hold in **every** module without exception in the current code.
 2. **Route shape.** Every module router defines the same five endpoints, each composed as `validateRequest(...)` → `controllerAdapter(Controller, method)`.
 3. **Controllers depend only on use cases.** Controllers import only `express`, `tsyringe` and their module's use cases, and inject exactly the five use case classes.
 4. **One repository per use case.** All 45 use cases have exactly one `@inject`, a repository token, and a single public method `execute`.
-5. **Only repositories access the database.** The `prisma` client is imported only by the nine repository implementations. No `$transaction` or raw SQL is used.
+5. **Only repositories access the database.** The `prisma` client is imported only by the nine repository implementations. Only `FinancialEntryRepository.createMany` uses `$transaction`, and no raw SQL is used.
 6. **Writes go through `prismaCall`; reads do not.** Each repository wraps exactly `create`, `update` and `delete`.
 7. **Module DTO files are `z.infer` of module schemas.**
 8. **No module imports another module.**
@@ -651,7 +651,7 @@ Listed factually. No fixes are proposed in this document.
 2. In the fund and category update use cases, the uniqueness filter uses `input.ledgerId` / `input.parentCategoryId`. When these are not in the request body they are `undefined`, Prisma ignores them, and the check spans all ledgers or parents. The same applies to category create when `parentCategoryId` is omitted.
 3. The category unique index `(ledger_id, parent_category_id, name)` does not use `NULLS NOT DISTINCT`. Under PostgreSQL defaults it does not prevent duplicate root categories (`parent_category_id IS NULL`).
 4. The fund-transaction update use case validates the credit/debit rule only when both amounts are present in the request.
-5. `additionalDescription` is required in the create schemas for entries and fund transactions, but nullable in the database.
+5. `additionalDescription` is optional in the entry schemas but still required in the fund-transaction create schema, while the column is nullable.
 6. `updateLedgerSchema` lacks `.strict()`, so unknown keys are stripped instead of rejected.
 
 **Dependency injection and wiring**
