@@ -1,6 +1,7 @@
 import { openApiRegistry } from '@docs/openapi/registry';
 import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
+import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createLedgerSchema,
   updateLedgerSchema,
@@ -8,6 +9,11 @@ import {
   ledgerSchema,
   listLedgerResponseSchema,
 } from './schemas';
+
+const bulkDeleteLedgerInput = openApiRegistry.register(
+  'BulkDeleteLedgerInput',
+  bulkDeleteSchema
+);
 
 const createLedgerInput = openApiRegistry.register(
   'CreateLedgerInput',
@@ -85,6 +91,33 @@ openApiRegistry.registerPath({
       },
     },
     400 : responseRef('ValidationError'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'post',
+  path        : '/ledgers/bulk-delete',
+  tags        : ['Ledgers'],
+  summary     : 'Delete several',
+  description : 'Deletes up to 100 records in one call, all or none. When some id does not exist, nothing is deleted and the 404 lists the ids that are missing in ids. When some record is used by other records, nothing is deleted and the 409 lists them in ids.',
+  operationId : 'bulkDeleteLedger',
+  request     : {
+    body: {
+      required : true,
+      content  : {
+        'application/json': {
+          schema  : bulkDeleteLedgerInput,
+          example : { ids: ['cm1234567890abcdefghijkl', 'cm1234567890abcdefghijkm'] },
+        },
+      },
+    },
+  },
+  responses: {
+    204 : { description: 'Records deleted successfully' },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
     409 : responseRef('Conflict'),
     ...globalErrorResponses,
   },

@@ -1,6 +1,7 @@
 import { openApiRegistry } from '@docs/openapi/registry';
 import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
+import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createFinancialCurrencySchema,
   updateFinancialCurrencySchema,
@@ -8,6 +9,11 @@ import {
   financialCurrencySchema,
   listFinancialCurrencyResponseSchema,
 } from './schemas';
+
+const bulkDeleteFinancialCurrencyInput = openApiRegistry.register(
+  'BulkDeleteFinancialCurrencyInput',
+  bulkDeleteSchema
+);
 
 const createFinancialCurrencyInput = openApiRegistry.register(
   'CreateFinancialCurrencyInput',
@@ -85,6 +91,33 @@ openApiRegistry.registerPath({
       },
     },
     400 : responseRef('ValidationError'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'post',
+  path        : '/financial/currencies/bulk-delete',
+  tags        : ['Financial Currencies'],
+  summary     : 'Delete several',
+  description : 'Deletes up to 100 records in one call, all or none. When some id does not exist, nothing is deleted and the 404 lists the ids that are missing in ids. When some record is used by other records, nothing is deleted and the 409 lists them in ids.',
+  operationId : 'bulkDeleteFinancialCurrency',
+  request     : {
+    body: {
+      required : true,
+      content  : {
+        'application/json': {
+          schema  : bulkDeleteFinancialCurrencyInput,
+          example : { ids: ['cm1234567890abcdefghijkl', 'cm1234567890abcdefghijkm'] },
+        },
+      },
+    },
+  },
+  responses: {
+    204 : { description: 'Records deleted successfully' },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
     409 : responseRef('Conflict'),
     ...globalErrorResponses,
   },

@@ -5,7 +5,8 @@ import {
   UpdateFinancialBankAccountUseCase,
   ListFinancialBankAccountUseCase,
   GetByIdFinancialBankAccountUseCase,
-  DeleteFinancialBankAccountUseCase
+  DeleteFinancialBankAccountUseCase,
+  BulkDeleteFinancialBankAccountUseCase
 } from './usecases';
 
 @injectable()
@@ -20,12 +21,19 @@ export class FinancialBankAccountController {
     @inject(GetByIdFinancialBankAccountUseCase)
     private readonly getByIdFinancialBankAccountUseCase: GetByIdFinancialBankAccountUseCase,
     @inject(DeleteFinancialBankAccountUseCase)
-    private readonly deleteFinancialBankAccountUseCase: DeleteFinancialBankAccountUseCase
+    private readonly deleteFinancialBankAccountUseCase: DeleteFinancialBankAccountUseCase,
+    @inject(BulkDeleteFinancialBankAccountUseCase)
+    private readonly bulkDeleteFinancialBankAccountUseCase: BulkDeleteFinancialBankAccountUseCase
   ) {}
 
   async create(req: Request, res: Response) {
     const financialBankAccount = await this.createFinancialBankAccountUseCase.execute(req.body);
     return res.status(201).json(financialBankAccount);
+  }
+
+  async bulkDelete(req: Request, res: Response) {
+    await this.bulkDeleteFinancialBankAccountUseCase.execute(req.body);
+    return res.status(204).send();
   }
 
   async list(req: Request, res: Response) {
