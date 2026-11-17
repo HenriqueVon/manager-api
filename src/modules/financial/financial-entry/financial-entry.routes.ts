@@ -8,7 +8,8 @@ import {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
   updateFinancialEntrySchema,
-  listFinancialEntryQuerySchema
+  listFinancialEntryQuerySchema,
+  summaryFinancialEntryQuerySchema
 } from './schemas';
 
 const router = Router();
@@ -35,6 +36,12 @@ router.post(
   '/bulk-delete',
   validateRequest({ body: bulkDeleteSchema }),
   controllerAdapter(FinancialEntryController, 'bulkDelete')
+);
+
+router.get(
+  '/summary',
+  validateRequest({ query: summaryFinancialEntryQuerySchema }),
+  controllerAdapter(FinancialEntryController, 'summary')
 );
 
 router.get(
