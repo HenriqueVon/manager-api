@@ -55,6 +55,15 @@ describe('FinancialEntry routes', () => {
   });
 
   describe('GET /financial/entries', () => {
+    it('should accept the type filter and reject an unknown type', async () => {
+      const ok = await request(app).get('/financial/entries').query({ type: 'PAYABLE' });
+      expect(ok.status).toBe(200);
+      expect(controllerSpy.mock.calls[0][1].query.type).toBe('PAYABLE');
+
+      const bad = await request(app).get('/financial/entries').query({ type: 'OTHER' });
+      expect(bad.status).toBe(400);
+    });
+
     it('should call list controller when query is valid', async () => {
       const response = await request(app)
         .get('/financial/entries')

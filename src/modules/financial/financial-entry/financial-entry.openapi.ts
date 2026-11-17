@@ -10,6 +10,8 @@ import {
   financialEntrySchema,
   financialEntryInstallmentsResponseSchema,
   listFinancialEntryResponseSchema,
+  summaryFinancialEntryQuerySchema,
+  summaryFinancialEntryResponseSchema,
 } from './schemas';
 
 const createFinancialEntryInput = openApiRegistry.register(
@@ -201,6 +203,31 @@ openApiRegistry.registerPath({
     204 : { description: 'FinancialEntry records deleted successfully' },
     400 : responseRef('ValidationError'),
     404 : responseRef('NotFound'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'get',
+  path        : '/financial/entries/summary',
+  tags        : ['Financial Entries'],
+  summary     : 'Summary',
+  description : 'Sums the amount and the amount paid of the entries that match the filters, with one group per type and currency (the currency of the fund of the entry). With ids, sums only those entries. A filter that matches nothing returns no groups.',
+  operationId : 'summaryFinancialEntry',
+  request     : {
+    query: summaryFinancialEntryQuerySchema,
+  },
+  responses: {
+    200: {
+      description : 'FinancialEntry summary returned successfully',
+      content     : {
+        'application/json': {
+          schema  : summaryFinancialEntryResponseSchema,
+          example : { items: [{ type: 'PAYABLE', financialCurrencyId: 'cm1234567890abcdefghijkl', count: 3, amount: '3000', amountPaid: '1000' }] },
+        },
+      },
+    },
+    400: responseRef('ValidationError'),
     ...globalErrorResponses,
   },
 });

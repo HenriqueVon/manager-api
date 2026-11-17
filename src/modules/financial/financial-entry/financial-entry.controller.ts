@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { inject, injectable } from 'tsyringe';
-import { ListFinancialEntryQueryDto } from './dtos';
+import { ListFinancialEntryQueryDto, SummaryFinancialEntryQueryDto } from './dtos';
 import {
   CreateFinancialEntryUseCase,
   CreateFinancialEntryInstallmentsUseCase,
@@ -8,7 +8,8 @@ import {
   ListFinancialEntryUseCase,
   GetByIdFinancialEntryUseCase,
   DeleteFinancialEntryUseCase,
-  BulkDeleteFinancialEntryUseCase
+  BulkDeleteFinancialEntryUseCase,
+  SummaryFinancialEntryUseCase
 } from './usecases';
 
 @injectable()
@@ -27,7 +28,9 @@ export class FinancialEntryController {
     @inject(DeleteFinancialEntryUseCase)
     private readonly deleteFinancialEntryUseCase: DeleteFinancialEntryUseCase,
     @inject(BulkDeleteFinancialEntryUseCase)
-    private readonly bulkDeleteFinancialEntryUseCase: BulkDeleteFinancialEntryUseCase
+    private readonly bulkDeleteFinancialEntryUseCase: BulkDeleteFinancialEntryUseCase,
+    @inject(SummaryFinancialEntryUseCase)
+    private readonly summaryFinancialEntryUseCase: SummaryFinancialEntryUseCase
   ) {}
 
   async create(req: Request, res: Response) {
@@ -45,6 +48,11 @@ export class FinancialEntryController {
     const financialEntrys = await this.listFinancialEntryUseCase.execute({ limit, offset, orderBy, orderDirection }, filters);
 
     return res.status(200).json(financialEntrys);
+  }
+
+  async summary(req: Request, res: Response) {
+    const summary = await this.summaryFinancialEntryUseCase.execute(req.query as unknown as SummaryFinancialEntryQueryDto);
+    return res.status(200).json(summary);
   }
 
   async getById(req: Request, res: Response) {
