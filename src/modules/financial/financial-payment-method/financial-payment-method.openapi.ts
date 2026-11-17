@@ -1,6 +1,7 @@
 import { openApiRegistry } from '@docs/openapi/registry';
 import { globalErrorResponses, responseRef } from '@docs/openapi/responses';
 import { idParamsSchema } from '@shared/schemas/id.schema';
+import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createFinancialPaymentMethodSchema,
   updateFinancialPaymentMethodSchema,
@@ -8,6 +9,11 @@ import {
   financialPaymentMethodSchema,
   listFinancialPaymentMethodResponseSchema,
 } from './schemas';
+
+const bulkDeleteFinancialPaymentMethodInput = openApiRegistry.register(
+  'BulkDeleteFinancialPaymentMethodInput',
+  bulkDeleteSchema
+);
 
 const createFinancialPaymentMethodInput = openApiRegistry.register(
   'CreateFinancialPaymentMethodInput',
@@ -84,6 +90,32 @@ openApiRegistry.registerPath({
     },
     400 : responseRef('ValidationError'),
     409 : responseRef('Conflict'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'post',
+  path        : '/financial/payment-methods/bulk-delete',
+  tags        : ['Financial Payment Methods'],
+  summary     : 'Delete several',
+  description : 'Deletes up to 100 records in one call, all or none. When some id does not exist, nothing is deleted and the 404 lists the ids that are missing in ids.',
+  operationId : 'bulkDeleteFinancialPaymentMethod',
+  request     : {
+    body: {
+      required : true,
+      content  : {
+        'application/json': {
+          schema  : bulkDeleteFinancialPaymentMethodInput,
+          example : { ids: ['cm1234567890abcdefghijkl', 'cm1234567890abcdefghijkm'] },
+        },
+      },
+    },
+  },
+  responses: {
+    204 : { description: 'Records deleted successfully' },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
     ...globalErrorResponses,
   },
 });

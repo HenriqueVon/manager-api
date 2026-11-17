@@ -103,7 +103,6 @@ An amount to pay or to receive, with a due date.
 - Belongs to a ledger and references a description, a fund and a category. *Enforced:* the fund and the category belong to the entry's ledger.
 - *Stored only:* `dueDate`, `paymentDate` (optional), `amountPaid` (default 0), `isMonthly`, `additionalDescription`. No rule links payment date, paid amount and amount, and `isMonthly` triggers no recurrence.
 - *Installments:* `POST /financial/entries/installments` splits a total in 2 to 480 monthly entries, saved together (all or none). The first due date is the one sent, the others follow month by month and keep the day, or the last day of a shorter month (31/01, 28/02, 31/03). The amount is split in cents and the last installment takes the cents left over (4000 in 3: 1333.33, 1333.33, 1333.34). Each `additionalDescription` ends with its number: "<complement> 1/3", or just "1/3" without a complement. They are created unpaid and not monthly. There is no link between the installments afterwards: each one is a plain entry.
-- *Bulk delete:* `POST /financial/entries/bulk-delete` deletes from 1 to 100 entries in one call (`{ "ids": [...] }`, a repeated id is deleted once). All or none: when some id does not exist, nothing is deleted and the `404` lists the missing ids in `ids`. Nothing references an entry, so a missing id is the only way it fails. The same call is the pattern for the other records, where an id that is in use will need its own rule.
 
 ### 2.8 Fund Transaction (Lançamento de caixa)
 
@@ -120,6 +119,7 @@ A movement of money in a fund, on a date, through a bank account.
   - Violations return `409 CONFLICT`.
   - A referenced fund, category or bank account cannot be moved to another ledger.
 - **No orphan deletes.** A record that is still referenced (ledger, currency, description, bank account, fund, category) cannot be deleted (`409`).
+- **Bulk delete.** Every record has `POST <path>/bulk-delete` (`{ "ids": [...] }`, from 1 to 100 ids, a repeated id is deleted once; `204`). All or none, and the error lists the ids that stopped it in `ids`: `404` when some id does not exist (checked first), `409` when some record is still referenced (same rule as *No orphan deletes*). Entries, fund transactions and payment methods are not referenced by anything, so only `404` applies. A category with subcategories counts as referenced even when its subcategories are in the same call: delete them first. If a record becomes used between the check and the delete, the database refuses the whole delete: the API answers a `409` without `ids`, and nothing is deleted.
 - **Normalized names.** Unique names are compared and stored trimmed and in upper case, e.g. `" europe "` → `EUROPE`. Known gap: category create, see [Section 2.6](#26-category-plano-de-contas).
 - **Balances are not computed.** `balance` fields are stored as sent by the client. Entries and fund transactions do not update them (Open).
 

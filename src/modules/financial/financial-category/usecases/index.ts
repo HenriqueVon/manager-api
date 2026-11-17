@@ -3,11 +3,13 @@ import { UpdateFinancialCategoryUseCase } from './update-financial-category.usec
 import { ListFinancialCategoryUseCase } from './list-financial-category.usecase';
 import { GetByIdFinancialCategoryUseCase } from './get-by-id-financial-category.usecase';
 import { DeleteFinancialCategoryUseCase } from './delete-financial-category.usecase';
+import { BulkDeleteFinancialCategoryUseCase } from './bulk-delete-financial-category.usecase';
 
 export {
   GetByIdFinancialCategoryUseCase,
   ListFinancialCategoryUseCase,
   CreateFinancialCategoryUseCase,
   UpdateFinancialCategoryUseCase,
-  DeleteFinancialCategoryUseCase
+  DeleteFinancialCategoryUseCase,
+  BulkDeleteFinancialCategoryUseCase
 };

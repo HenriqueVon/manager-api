@@ -26,7 +26,7 @@ export const appErrorResponseSchema = z.object({
     'PAYLOAD_TOO_LARGE',
     ...upstreamAuthErrorCodes,
   ]),
-  // Only on the 404 of a request for several records: the ids that do not exist
+  // Only on the 404 and the 409 of a request for several records: the ids that do not exist or are in use
   ids: z.array(z.string()).optional(),
 });
 

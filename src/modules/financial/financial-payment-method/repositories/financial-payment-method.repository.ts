@@ -70,6 +70,19 @@ export class FinancialPaymentMethodRepository implements IFinancialPaymentMethod
     await prismaCall(() => prisma.financialPaymentMethod.delete({ where: { id } }));
   }
 
+  async findExistingIds(ids: string[]): Promise<string[]> {
+    const records = await prisma.financialPaymentMethod.findMany({
+      where  : { id: { in: ids } },
+      select : { id: true },
+    });
+
+    return records.map((record) => record.id);
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await prismaCall(() => prisma.financialPaymentMethod.deleteMany({ where: { id: { in: ids } } }));
+  }
+
   async exists(id: string): Promise<boolean> {
     const count = await prisma.financialPaymentMethod.count({ where: { id } });
     return count > 0;

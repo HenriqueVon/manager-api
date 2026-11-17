@@ -3,6 +3,7 @@ import { controllerAdapter } from '@shared/http/controller.adapter';
 import { validateRequest } from '@shared/http/middlewares/validate.middleware';
 import { FinancialFundController } from './financial-fund.controller';
 import { idParamsSchema } from '@shared/schemas/id.schema';
+import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createFinancialFundSchema,
   updateFinancialFundSchema,
@@ -21,6 +22,12 @@ router.post(
   '/',
   validateRequest({ body: createFinancialFundSchema }),
   controllerAdapter(FinancialFundController, 'create')
+);
+
+router.post(
+  '/bulk-delete',
+  validateRequest({ body: bulkDeleteSchema }),
+  controllerAdapter(FinancialFundController, 'bulkDelete')
 );
 
 router.get(

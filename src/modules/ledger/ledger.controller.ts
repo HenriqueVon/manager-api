@@ -6,7 +6,8 @@ import {
   UpdateLedgerUseCase,
   ListLedgerUseCase,
   GetByIdLedgerUseCase,
-  DeleteLedgerUseCase
+  DeleteLedgerUseCase,
+  BulkDeleteLedgerUseCase
 } from './usecases';
 
 @injectable()
@@ -21,12 +22,19 @@ export class LedgerController {
     @inject(GetByIdLedgerUseCase)
     private readonly getByIdLedgerUseCase: GetByIdLedgerUseCase,
     @inject(DeleteLedgerUseCase)
-    private readonly deleteLedgerUseCase: DeleteLedgerUseCase
+    private readonly deleteLedgerUseCase: DeleteLedgerUseCase,
+    @inject(BulkDeleteLedgerUseCase)
+    private readonly bulkDeleteLedgerUseCase: BulkDeleteLedgerUseCase
   ) {}
 
   async create(req: Request, res: Response) {
     const ledger = await this.createLedgerUseCase.execute(req.body);
     return res.status(201).json(ledger);
+  }
+
+  async bulkDelete(req: Request, res: Response) {
+    await this.bulkDeleteLedgerUseCase.execute(req.body);
+    return res.status(204).send();
   }
 
   async list(req: Request, res: Response) {
