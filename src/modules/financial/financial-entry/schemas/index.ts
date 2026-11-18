@@ -1,5 +1,6 @@
 import { createFinancialEntrySchema } from './create-financial-entry.schema';
 import { createFinancialEntryInstallmentsSchema } from './create-financial-entry-installments.schema';
+import { createFinancialEntryMonthlySchema } from './create-financial-entry-monthly.schema';
 import { updateFinancialEntrySchema } from './update-financial-entry.schema';
 import { listFinancialEntryQuerySchema } from './list-financial-entry-query.schema';
 import {
@@ -15,12 +16,14 @@ import {
 } from './summary-breakdown-financial-entry-response.schema';
 import { financialEntrySchema } from './financial-entry.schema';
 import { financialEntryInstallmentsResponseSchema } from './financial-entry-installments-response.schema';
+import { financialEntryMonthlyResponseSchema } from './financial-entry-monthly-response.schema';
 import { listFinancialEntryResponseSchema } from './list-financial-entry-response.schema';
 
 
 export {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
+  createFinancialEntryMonthlySchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema,
   summaryFinancialEntryQuerySchema,
@@ -32,5 +35,6 @@ export {
   agingFinancialEntryResponseSchema,
   financialEntrySchema,
   financialEntryInstallmentsResponseSchema,
+  financialEntryMonthlyResponseSchema,
   listFinancialEntryResponseSchema,
 };

@@ -5,10 +5,12 @@ import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
+  createFinancialEntryMonthlySchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema,
   financialEntrySchema,
   financialEntryInstallmentsResponseSchema,
+  financialEntryMonthlyResponseSchema,
   listFinancialEntryResponseSchema,
   summaryFinancialEntryQuerySchema,
   summaryFinancialEntryResponseSchema,
@@ -27,6 +29,11 @@ const createFinancialEntryInput = openApiRegistry.register(
 const createFinancialEntryInstallmentsInput = openApiRegistry.register(
   'CreateFinancialEntryInstallmentsInput',
   createFinancialEntryInstallmentsSchema
+);
+
+const createFinancialEntryMonthlyInput = openApiRegistry.register(
+  'CreateFinancialEntryMonthlyInput',
+  createFinancialEntryMonthlySchema
 );
 
 const bulkDeleteFinancialEntryInput = openApiRegistry.register(
@@ -93,6 +100,31 @@ const financialEntryInstallmentsExample = [
   paymentDate           : null,
   amount                : '1000',
   additionalDescription : `Flight ticket ${number}/3`,
+}));
+
+const financialEntryMonthlyInputExample = {
+  type                   : 'PAYABLE',
+  dueDate                : '2026-11-05',
+  amount                 : 120,
+  repeatCount            : 3,
+  additionalDescription  : 'Internet',
+  ledgerId               : 'cm1234567890abcdefghijkl',
+  financialDescriptionId : 'cm1234567890abcdefghijkl',
+  financialFundId        : 'cm1234567890abcdefghijkl',
+  financialCategoryId    : 'cm1234567890abcdefghijkl',
+};
+
+const financialEntryMonthlyExample = [
+  '2026-11-05T00:00:00.000Z',
+  '2026-12-05T00:00:00.000Z',
+  '2027-01-05T00:00:00.000Z',
+].map((dueDate) => ({
+  ...financialEntryExample,
+  dueDate,
+  paymentDate           : null,
+  amount                : '120',
+  additionalDescription : 'Internet',
+  isMonthly             : true,
 }));
 
 openApiRegistry.registerPath({
@@ -177,6 +209,40 @@ openApiRegistry.registerPath({
         'application/json': {
           schema  : financialEntryInstallmentsResponseSchema,
           example : financialEntryInstallmentsExample,
+        },
+      },
+    },
+    400 : responseRef('ValidationError'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'post',
+  path        : '/financial/entries/monthly',
+  tags        : ['Financial Entries'],
+  summary     : 'Create repeating every month',
+  description : 'Repeats the same entry every month, saved together: all of them or none. repeatCount is the total of entries, the first one included, from 2 to 60. Each one keeps the full amount and the same additionalDescription, is created unpaid and has isMonthly true.',
+  operationId : 'createFinancialEntryMonthly',
+  request     : {
+    body: {
+      required : true,
+      content  : {
+        'application/json': {
+          schema  : createFinancialEntryMonthlyInput,
+          example : financialEntryMonthlyInputExample,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description : 'FinancialEntry monthly entries created successfully',
+      content     : {
+        'application/json': {
+          schema  : financialEntryMonthlyResponseSchema,
+          example : financialEntryMonthlyExample,
         },
       },
     },

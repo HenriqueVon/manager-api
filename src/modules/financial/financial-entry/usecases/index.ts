@@ -1,5 +1,6 @@
 import { CreateFinancialEntryUseCase } from './create-financial-entry.usecase';
 import { CreateFinancialEntryInstallmentsUseCase } from './create-financial-entry-installments.usecase';
+import { CreateFinancialEntryMonthlyUseCase } from './create-financial-entry-monthly.usecase';
 import { UpdateFinancialEntryUseCase } from './update-financial-entry.usecase';
 import { ListFinancialEntryUseCase } from './list-financial-entry.usecase';
 import { GetByIdFinancialEntryUseCase } from './get-by-id-financial-entry.usecase';
@@ -15,6 +16,7 @@ export {
   ListFinancialEntryUseCase,
   CreateFinancialEntryUseCase,
   CreateFinancialEntryInstallmentsUseCase,
+  CreateFinancialEntryMonthlyUseCase,
   UpdateFinancialEntryUseCase,
   DeleteFinancialEntryUseCase,
   BulkDeleteFinancialEntryUseCase,

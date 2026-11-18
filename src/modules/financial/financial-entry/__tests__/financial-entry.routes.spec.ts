@@ -12,7 +12,7 @@ vi.mock('@shared/http/controller.adapter', () => ({
     return (req: Request, res: Response) => {
       controllerSpy(method, req);
 
-      if (method === 'create' || method === 'createInstallments') {
+      if (method === 'create' || method === 'createInstallments' || method === 'createMonthly') {
         return res.status(201).json({ ok: true });
       }
 
@@ -378,6 +378,89 @@ describe('FinancialEntry routes', () => {
         const response = await request(app)
           .post('/financial/entries/installments')
           .send({ ...installmentsBody, ...extra });
+
+        expect(response.status).toBe(400);
+      }
+
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /financial/entries/monthly', () => {
+    const monthlyBody = {
+      type                   : 'PAYABLE',
+      dueDate                : '2026-11-05',
+      amount                 : 120,
+      repeatCount            : 12,
+      additionalDescription  : 'INTERNET',
+      ledgerId               : validCuid,
+      financialDescriptionId : validCuid,
+      financialFundId        : validCuid,
+      financialCategoryId    : validCuid,
+    };
+
+    it('should transform the date and call the createMonthly controller', async () => {
+      const response = await request(app)
+        .post('/financial/entries/monthly')
+        .send(monthlyBody);
+
+      expect(response.status).toBe(201);
+      expect(controllerSpy).toHaveBeenCalledWith('createMonthly', expect.anything());
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+      expect(requestReceived.body.dueDate).toEqual(new Date('2026-11-05T00:00:00.000Z'));
+      expect(requestReceived.body.repeatCount).toBe(12);
+    });
+
+    it('should accept a body without additionalDescription', async () => {
+      const body: Partial<typeof monthlyBody> = { ...monthlyBody };
+      delete body.additionalDescription;
+
+      const response = await request(app)
+        .post('/financial/entries/monthly')
+        .send(body);
+
+      expect(response.status).toBe(201);
+    });
+
+    it('should accept the limits of repeatCount', async () => {
+      for (const repeatCount of [2, 60]) {
+        const response = await request(app)
+          .post('/financial/entries/monthly')
+          .send({ ...monthlyBody, repeatCount });
+
+        expect(response.status).toBe(201);
+      }
+    });
+
+    it('should return 400 when repeatCount is out of range or not an integer', async () => {
+      for (const repeatCount of [1, 0, 61, 2.5, '3']) {
+        const response = await request(app)
+          .post('/financial/entries/monthly')
+          .send({ ...monthlyBody, repeatCount });
+
+        expect(response.status).toBe(400);
+      }
+
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when repeatCount is missing', async () => {
+      const body: Partial<typeof monthlyBody> = { ...monthlyBody };
+      delete body.repeatCount;
+
+      const response = await request(app)
+        .post('/financial/entries/monthly')
+        .send(body);
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 400 for the fields that do not apply to monthly entries', async () => {
+      for (const extra of [{ paymentDate: '2026-11-05' }, { amountPaid: 10 }, { isMonthly: true }, { installments: 3 }]) {
+        const response = await request(app)
+          .post('/financial/entries/monthly')
+          .send({ ...monthlyBody, ...extra });
 
         expect(response.status).toBe(400);
       }

@@ -7,6 +7,7 @@ import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
+  createFinancialEntryMonthlySchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema,
   summaryFinancialEntryQuerySchema,
@@ -32,6 +33,12 @@ router.post(
   '/installments',
   validateRequest({ body: createFinancialEntryInstallmentsSchema }),
   controllerAdapter(FinancialEntryController, 'createInstallments')
+);
+
+router.post(
+  '/monthly',
+  validateRequest({ body: createFinancialEntryMonthlySchema }),
+  controllerAdapter(FinancialEntryController, 'createMonthly')
 );
 
 router.post(
