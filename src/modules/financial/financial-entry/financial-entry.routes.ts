@@ -8,6 +8,7 @@ import {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
   createFinancialEntryMonthlySchema,
+  bulkPayFinancialEntrySchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema,
   summaryFinancialEntryQuerySchema,
@@ -45,6 +46,12 @@ router.post(
   '/bulk-delete',
   validateRequest({ body: bulkDeleteSchema }),
   controllerAdapter(FinancialEntryController, 'bulkDelete')
+);
+
+router.post(
+  '/bulk-pay',
+  validateRequest({ body: bulkPayFinancialEntrySchema }),
+  controllerAdapter(FinancialEntryController, 'bulkPay')
 );
 
 router.get(

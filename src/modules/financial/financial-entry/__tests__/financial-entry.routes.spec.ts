@@ -16,7 +16,7 @@ vi.mock('@shared/http/controller.adapter', () => ({
         return res.status(201).json({ ok: true });
       }
 
-      if (method === 'delete' || method === 'bulkDelete') {
+      if (method === 'delete' || method === 'bulkDelete' || method === 'bulkPay') {
         return res.status(204).send();
       }
 
@@ -540,6 +540,62 @@ describe('FinancialEntry routes', () => {
         .send({ ids: [cuid(1)], extra: 'not-allowed' });
 
       expect(response.status).toBe(400);
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /financial/entries/bulk-pay', () => {
+    const cuid = (index: number) => `ckl8p2x1a${String(index).padStart(4, '0')}x8kq3b0c9a1z`;
+
+    it('should call the bulkPay controller when the ids are valid', async () => {
+      const response = await request(app)
+        .post('/financial/entries/bulk-pay')
+        .send({ ids: [cuid(1), cuid(2)] });
+
+      expect(response.status).toBe(204);
+      expect(controllerSpy).toHaveBeenCalledWith('bulkPay', expect.anything());
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+      expect(requestReceived.body).toEqual({ ids: [cuid(1), cuid(2)] });
+    });
+
+    it('should pay a repeated id once', async () => {
+      await request(app)
+        .post('/financial/entries/bulk-pay')
+        .send({ ids: [cuid(1), cuid(2), cuid(1)] });
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+      expect(requestReceived.body.ids).toEqual([cuid(1), cuid(2)]);
+    });
+
+    it('should accept from 1 to 100 ids', async () => {
+      for (const count of [1, 100]) {
+        const response = await request(app)
+          .post('/financial/entries/bulk-pay')
+          .send({ ids: Array.from({ length: count }, (_, index) => cuid(index)) });
+
+        expect(response.status).toBe(204);
+      }
+    });
+
+    it('should return 400 for no ids, more than 100, an invalid id or extra fields', async () => {
+      const bodies = [
+        { ids: [] },
+        { ids: Array.from({ length: 101 }, (_, index) => cuid(index)) },
+        { ids: [cuid(1), '123'] },
+        { ids: 'not-an-array' },
+        {},
+        { ids: [cuid(1)], paymentDate: '2026-11-05' },
+      ];
+
+      for (const body of bodies) {
+        const response = await request(app)
+          .post('/financial/entries/bulk-pay')
+          .send(body);
+
+        expect(response.status).toBe(400);
+      }
+
       expect(controllerSpy).not.toHaveBeenCalled();
     });
   });

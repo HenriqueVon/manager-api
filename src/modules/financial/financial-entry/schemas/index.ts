@@ -1,6 +1,7 @@
 import { createFinancialEntrySchema } from './create-financial-entry.schema';
 import { createFinancialEntryInstallmentsSchema } from './create-financial-entry-installments.schema';
 import { createFinancialEntryMonthlySchema } from './create-financial-entry-monthly.schema';
+import { bulkPayFinancialEntrySchema } from './bulk-pay-financial-entry.schema';
 import { updateFinancialEntrySchema } from './update-financial-entry.schema';
 import { listFinancialEntryQuerySchema } from './list-financial-entry-query.schema';
 import {
@@ -24,6 +25,7 @@ export {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
   createFinancialEntryMonthlySchema,
+  bulkPayFinancialEntrySchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema,
   summaryFinancialEntryQuerySchema,

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Request, Response } from 'express';
 import { errorHandler } from '../error-handlers.middleware';
-import { ConflictError, NotFoundError, ResourcesInUseError, ResourcesNotFoundError } from '@shared/errors/app-error';
+import { ConflictError, NotFoundError, ResourcesAlreadyPaidError, ResourcesInUseError, ResourcesNotFoundError } from '@shared/errors/app-error';
 
 function respond(error: unknown) {
   const json = vi.fn();
@@ -27,6 +27,13 @@ describe('errorHandler', () => {
 
     expect(status).toHaveBeenCalledWith(409);
     expect(json).toHaveBeenCalledWith({ message: 'Some resources are in use', code: 'CONFLICT', ids: ['a'] });
+  });
+
+  it('should list the ids that are already paid in the 409 of a request for several records', () => {
+    const { status, json } = respond(new ResourcesAlreadyPaidError(['a']));
+
+    expect(status).toHaveBeenCalledWith(409);
+    expect(json).toHaveBeenCalledWith({ message: 'Some resources are already paid', code: 'CONFLICT', ids: ['a'] });
   });
 
   it('should not add ids to any other error', () => {

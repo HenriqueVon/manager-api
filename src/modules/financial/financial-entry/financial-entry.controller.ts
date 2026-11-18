@@ -15,6 +15,7 @@ import {
   GetByIdFinancialEntryUseCase,
   DeleteFinancialEntryUseCase,
   BulkDeleteFinancialEntryUseCase,
+  BulkPayFinancialEntryUseCase,
   SummaryFinancialEntryUseCase,
   SummaryByMonthFinancialEntryUseCase,
   SummaryByCategoryFinancialEntryUseCase,
@@ -40,6 +41,8 @@ export class FinancialEntryController {
     private readonly deleteFinancialEntryUseCase: DeleteFinancialEntryUseCase,
     @inject(BulkDeleteFinancialEntryUseCase)
     private readonly bulkDeleteFinancialEntryUseCase: BulkDeleteFinancialEntryUseCase,
+    @inject(BulkPayFinancialEntryUseCase)
+    private readonly bulkPayFinancialEntryUseCase: BulkPayFinancialEntryUseCase,
     @inject(SummaryFinancialEntryUseCase)
     private readonly summaryFinancialEntryUseCase: SummaryFinancialEntryUseCase,
     @inject(SummaryByMonthFinancialEntryUseCase)
@@ -109,6 +112,11 @@ export class FinancialEntryController {
 
   async bulkDelete(req: Request, res: Response) {
     await this.bulkDeleteFinancialEntryUseCase.execute(req.body);
+    return res.status(204).send();
+  }
+
+  async bulkPay(req: Request, res: Response) {
+    await this.bulkPayFinancialEntryUseCase.execute(req.body);
     return res.status(204).send();
   }
 }
