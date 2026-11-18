@@ -9,7 +9,9 @@ import {
   createFinancialEntryInstallmentsSchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema,
-  summaryFinancialEntryQuerySchema
+  summaryFinancialEntryQuerySchema,
+  summaryBreakdownFinancialEntryQuerySchema,
+  agingFinancialEntryQuerySchema
 } from './schemas';
 
 const router = Router();
@@ -42,6 +44,24 @@ router.get(
   '/summary',
   validateRequest({ query: summaryFinancialEntryQuerySchema }),
   controllerAdapter(FinancialEntryController, 'summary')
+);
+
+router.get(
+  '/summary/by-month',
+  validateRequest({ query: summaryBreakdownFinancialEntryQuerySchema }),
+  controllerAdapter(FinancialEntryController, 'summaryByMonth')
+);
+
+router.get(
+  '/summary/by-category',
+  validateRequest({ query: summaryBreakdownFinancialEntryQuerySchema }),
+  controllerAdapter(FinancialEntryController, 'summaryByCategory')
+);
+
+router.get(
+  '/summary/aging',
+  validateRequest({ query: agingFinancialEntryQuerySchema }),
+  controllerAdapter(FinancialEntryController, 'aging')
 );
 
 router.get(

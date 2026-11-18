@@ -60,6 +60,16 @@ describe('GET /financial/entries/summary', () => {
     expect(bad.status).toBe(400);
   });
 
+  it('should accept paid as true or false and reject any other value', async () => {
+    await request(app).get('/financial/entries/summary').query({ paid: 'true' });
+    await request(app).get('/financial/entries/summary').query({ paid: 'false' });
+    expect(controllerSpy.mock.calls[0][1].query.paid).toBe(true);
+    expect(controllerSpy.mock.calls[1][1].query.paid).toBe(false);
+
+    const bad = await request(app).get('/financial/entries/summary').query({ paid: 'yes' });
+    expect(bad.status).toBe(400);
+  });
+
   it('should count a repeated id once', async () => {
     await request(app).get('/financial/entries/summary').query({ ids: `${validCuid},${validCuid}` });
 

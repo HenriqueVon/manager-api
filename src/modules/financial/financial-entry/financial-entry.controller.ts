@@ -1,6 +1,11 @@
 import { Request, Response } from 'express';
 import { inject, injectable } from 'tsyringe';
-import { ListFinancialEntryQueryDto, SummaryFinancialEntryQueryDto } from './dtos';
+import {
+  ListFinancialEntryQueryDto,
+  SummaryFinancialEntryQueryDto,
+  SummaryBreakdownFinancialEntryQueryDto,
+  AgingFinancialEntryQueryDto
+} from './dtos';
 import {
   CreateFinancialEntryUseCase,
   CreateFinancialEntryInstallmentsUseCase,
@@ -9,7 +14,10 @@ import {
   GetByIdFinancialEntryUseCase,
   DeleteFinancialEntryUseCase,
   BulkDeleteFinancialEntryUseCase,
-  SummaryFinancialEntryUseCase
+  SummaryFinancialEntryUseCase,
+  SummaryByMonthFinancialEntryUseCase,
+  SummaryByCategoryFinancialEntryUseCase,
+  AgingFinancialEntryUseCase
 } from './usecases';
 
 @injectable()
@@ -30,7 +38,13 @@ export class FinancialEntryController {
     @inject(BulkDeleteFinancialEntryUseCase)
     private readonly bulkDeleteFinancialEntryUseCase: BulkDeleteFinancialEntryUseCase,
     @inject(SummaryFinancialEntryUseCase)
-    private readonly summaryFinancialEntryUseCase: SummaryFinancialEntryUseCase
+    private readonly summaryFinancialEntryUseCase: SummaryFinancialEntryUseCase,
+    @inject(SummaryByMonthFinancialEntryUseCase)
+    private readonly summaryByMonthFinancialEntryUseCase: SummaryByMonthFinancialEntryUseCase,
+    @inject(SummaryByCategoryFinancialEntryUseCase)
+    private readonly summaryByCategoryFinancialEntryUseCase: SummaryByCategoryFinancialEntryUseCase,
+    @inject(AgingFinancialEntryUseCase)
+    private readonly agingFinancialEntryUseCase: AgingFinancialEntryUseCase
   ) {}
 
   async create(req: Request, res: Response) {
@@ -53,6 +67,21 @@ export class FinancialEntryController {
   async summary(req: Request, res: Response) {
     const summary = await this.summaryFinancialEntryUseCase.execute(req.query as unknown as SummaryFinancialEntryQueryDto);
     return res.status(200).json(summary);
+  }
+
+  async summaryByMonth(req: Request, res: Response) {
+    const summary = await this.summaryByMonthFinancialEntryUseCase.execute(req.query as unknown as SummaryBreakdownFinancialEntryQueryDto);
+    return res.status(200).json(summary);
+  }
+
+  async summaryByCategory(req: Request, res: Response) {
+    const summary = await this.summaryByCategoryFinancialEntryUseCase.execute(req.query as unknown as SummaryBreakdownFinancialEntryQueryDto);
+    return res.status(200).json(summary);
+  }
+
+  async aging(req: Request, res: Response) {
+    const aging = await this.agingFinancialEntryUseCase.execute(req.query as unknown as AgingFinancialEntryQueryDto);
+    return res.status(200).json(aging);
   }
 
   async getById(req: Request, res: Response) {
