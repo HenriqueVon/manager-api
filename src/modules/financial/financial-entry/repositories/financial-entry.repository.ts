@@ -5,6 +5,7 @@ import { IFinancialEntryRepository } from './ifinancial-entry.repository';
 import {
   CreateFinancialEntryDto,
   UpdateFinancialEntryDto,
+  FinancialEntryPaymentResultDto,
   FinancialEntrySummaryFiltersDto,
   FinancialEntrySummaryGroupDto,
   FinancialEntrySummaryMonthDto,
@@ -16,6 +17,7 @@ import { prismaCall } from '@shared/database/prisma/prisma-call';
 import { DateRangeDto } from '@shared/dtos/date-range.dto';
 import { ListParamsDto } from '@shared/dtos/list-params.dto';
 import { PaginatedResponseDto } from '@shared/dtos/paginated-response.dto';
+import { ResourcesAlreadyPaidError } from '@shared/errors/app-error';
 
 @injectable()
 export class FinancialEntryRepository implements IFinancialEntryRepository {
@@ -224,6 +226,38 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
 
   async deleteMany(ids: string[]): Promise<void> {
     await prismaCall(() => prisma.financialEntry.deleteMany({ where: { id: { in: ids } } }));
+  }
+
+  async payMany(ids: string[]): Promise<FinancialEntryPaymentResultDto> {
+    return prismaCall(() => prisma.$transaction(async (tx) => {
+      const entries = await tx.financialEntry.findMany({
+        where  : { id: { in: ids } },
+        select : { id: true, dueDate: true, amount: true, paymentDate: true },
+      });
+
+      const found = new Set(entries.map((entry) => entry.id));
+      const missingIds = ids.filter((id) => !found.has(id));
+      const paidIds = entries.filter((entry) => entry.paymentDate !== null).map((entry) => entry.id);
+
+      if (missingIds.length > 0 || paidIds.length > 0) {
+        return { missingIds, paidIds };
+      }
+
+      for (const entry of entries) {
+        // The condition repeats the check above: an entry paid by someone else after the read is not overwritten,
+        // and the error undoes the whole transaction.
+        const { count } = await tx.financialEntry.updateMany({
+          where : { id: entry.id, paymentDate: null },
+          data  : { paymentDate: entry.dueDate, amountPaid: entry.amount },
+        });
+
+        if (count !== 1) {
+          throw new ResourcesAlreadyPaidError([entry.id]);
+        }
+      }
+
+      return { missingIds: [], paidIds: [] };
+    }));
   }
 
   async exists(id: string): Promise<boolean> {

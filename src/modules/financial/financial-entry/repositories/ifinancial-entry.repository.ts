@@ -2,6 +2,7 @@ import { FinancialEntry, FinancialEntryType } from '@prisma/client';
 import {
   CreateFinancialEntryDto,
   UpdateFinancialEntryDto,
+  FinancialEntryPaymentResultDto,
   FinancialEntrySummaryFiltersDto,
   FinancialEntrySummaryGroupDto,
   FinancialEntrySummaryMonthDto,
@@ -32,5 +33,8 @@ export interface IFinancialEntryRepository {
   findExistingIds(ids: string[]): Promise<string[]>;
   // Deletes all the records with the given ids in a single statement
   deleteMany(ids: string[]): Promise<void>;
+  // Marks the entries as paid, in one transaction: the payment date becomes the due date and the amount paid the
+  // amount. When some id does not exist or is already paid, nothing is changed and the result lists those ids.
+  payMany(ids: string[]): Promise<FinancialEntryPaymentResultDto>;
   exists(id: string): Promise<boolean>;
 }

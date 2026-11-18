@@ -6,6 +6,7 @@ import {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
   createFinancialEntryMonthlySchema,
+  bulkPayFinancialEntrySchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema,
   financialEntrySchema,
@@ -39,6 +40,11 @@ const createFinancialEntryMonthlyInput = openApiRegistry.register(
 const bulkDeleteFinancialEntryInput = openApiRegistry.register(
   'BulkDeleteFinancialEntryInput',
   bulkDeleteSchema
+);
+
+const bulkPayFinancialEntryInput = openApiRegistry.register(
+  'BulkPayFinancialEntryInput',
+  bulkPayFinancialEntrySchema
 );
 
 // minProperties documents the "at least one field" refine rule
@@ -274,6 +280,33 @@ openApiRegistry.registerPath({
     204 : { description: 'FinancialEntry records deleted successfully' },
     400 : responseRef('ValidationError'),
     404 : responseRef('NotFound'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'post',
+  path        : '/financial/entries/bulk-pay',
+  tags        : ['Financial Entries'],
+  summary     : 'Mark several as paid',
+  description : 'Marks up to 100 entries as paid (or received) in one call, in a single transaction: all or none. Each entry gets its due date as the payment date and its amount as the amount paid. When some id does not exist, nothing is changed and the 404 lists the missing ids in ids. When some entry already has a payment date, nothing is changed and the 409 lists those ids in ids.',
+  operationId : 'bulkPayFinancialEntry',
+  request     : {
+    body: {
+      required : true,
+      content  : {
+        'application/json': {
+          schema  : bulkPayFinancialEntryInput,
+          example : { ids: ['cm1234567890abcdefghijkl', 'cm1234567890abcdefghijkm'] },
+        },
+      },
+    },
+  },
+  responses: {
+    204 : { description: 'FinancialEntry records marked as paid successfully' },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    409 : responseRef('Conflict'),
     ...globalErrorResponses,
   },
 });

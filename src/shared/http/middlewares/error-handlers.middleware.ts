@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from 'express';
-import { AppError, BadRequestError, PayloadTooLargeError, ResourcesInUseError, ResourcesNotFoundError, UpstreamAuthError } from '../../errors/app-error';
+import { AppError, BadRequestError, PayloadTooLargeError, ResourcesAlreadyPaidError, ResourcesInUseError, ResourcesNotFoundError, UpstreamAuthError } from '../../errors/app-error';
 
 // Errors raised by the JSON body parser (express.json()) carry a `type`; any other type stays unexpected
 function fromBodyParserError(err: unknown): unknown {
@@ -34,8 +34,8 @@ export function errorHandler(
     return res.status(err.statusCode).json({
       message : err.message,
       code    : err.code,
-      // The 404 and the 409 of a request for several records say which ones do not exist or are in use
-      ...((err instanceof ResourcesNotFoundError || err instanceof ResourcesInUseError) && { ids: err.ids }),
+      // The 404 and the 409 of a request for several records say which ones do not exist, are in use or are already paid
+      ...((err instanceof ResourcesNotFoundError || err instanceof ResourcesInUseError || err instanceof ResourcesAlreadyPaidError) && { ids: err.ids }),
     });
   }
 
