@@ -12,6 +12,11 @@ import {
   listFinancialEntryResponseSchema,
   summaryFinancialEntryQuerySchema,
   summaryFinancialEntryResponseSchema,
+  summaryBreakdownFinancialEntryQuerySchema,
+  agingFinancialEntryQuerySchema,
+  summaryByMonthFinancialEntryResponseSchema,
+  summaryByCategoryFinancialEntryResponseSchema,
+  agingFinancialEntryResponseSchema,
 } from './schemas';
 
 const createFinancialEntryInput = openApiRegistry.register(
@@ -212,7 +217,7 @@ openApiRegistry.registerPath({
   path        : '/financial/entries/summary',
   tags        : ['Financial Entries'],
   summary     : 'Summary',
-  description : 'Sums the amount and the amount paid of the entries that match the filters, with one group per type and currency (the currency of the fund of the entry). With ids, sums only those entries. A filter that matches nothing returns no groups.',
+  description : 'Sums the amount and the amount paid of the entries that match the filters, with one group per type and currency (the currency of the fund of the entry). With ids, sums only those entries. With paid, sums only the entries with (true) or without (false) a payment date. A filter that matches nothing returns no groups.',
   operationId : 'summaryFinancialEntry',
   request     : {
     query: summaryFinancialEntryQuerySchema,
@@ -224,6 +229,81 @@ openApiRegistry.registerPath({
         'application/json': {
           schema  : summaryFinancialEntryResponseSchema,
           example : { items: [{ type: 'PAYABLE', financialCurrencyId: 'cm1234567890abcdefghijkl', count: 3, amount: '3000', amountPaid: '1000' }] },
+        },
+      },
+    },
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'get',
+  path        : '/financial/entries/summary/by-month',
+  tags        : ['Financial Entries'],
+  summary     : 'Summary by month',
+  description : 'The same sums as the summary, with one group per month of the due date (YYYY-MM), type and currency. Months without entries are not returned. Takes the same filters as the summary, except ids.',
+  operationId : 'summaryByMonthFinancialEntry',
+  request     : {
+    query: summaryBreakdownFinancialEntryQuerySchema,
+  },
+  responses: {
+    200: {
+      description : 'FinancialEntry summary by month returned successfully',
+      content     : {
+        'application/json': {
+          schema  : summaryByMonthFinancialEntryResponseSchema,
+          example : { items: [{ month: '2026-11', type: 'PAYABLE', financialCurrencyId: 'cm1234567890abcdefghijkl', count: 3, amount: '3000', amountPaid: '1000' }] },
+        },
+      },
+    },
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'get',
+  path        : '/financial/entries/summary/by-category',
+  tags        : ['Financial Entries'],
+  summary     : 'Summary by category',
+  description : 'The same sums as the summary, with one group per category, type and currency. The category is the one of the entry, not a parent of it. Takes the same filters as the summary, except ids.',
+  operationId : 'summaryByCategoryFinancialEntry',
+  request     : {
+    query: summaryBreakdownFinancialEntryQuerySchema,
+  },
+  responses: {
+    200: {
+      description : 'FinancialEntry summary by category returned successfully',
+      content     : {
+        'application/json': {
+          schema  : summaryByCategoryFinancialEntryResponseSchema,
+          example : { items: [{ financialCategoryId: 'cm1234567890abcdefghijkl', type: 'PAYABLE', financialCurrencyId: 'cm1234567890abcdefghijkl', count: 3, amount: '3000', amountPaid: '1000' }] },
+        },
+      },
+    },
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'get',
+  path        : '/financial/entries/summary/aging',
+  tags        : ['Financial Entries'],
+  summary     : 'Aging',
+  description : 'What is still to pay or receive (amount minus amount paid) in the entries without a payment date, grouped by how far the due date is from today (the current UTC date), type and currency. Bands without entries are not returned.',
+  operationId : 'agingFinancialEntry',
+  request     : {
+    query: agingFinancialEntryQuerySchema,
+  },
+  responses: {
+    200: {
+      description : 'FinancialEntry aging returned successfully',
+      content     : {
+        'application/json': {
+          schema  : agingFinancialEntryResponseSchema,
+          example : { items: [{ band: 'OVERDUE', type: 'PAYABLE', financialCurrencyId: 'cm1234567890abcdefghijkl', count: 2, amountOpen: '500' }] },
         },
       },
     },

@@ -6,6 +6,9 @@ import { GetByIdFinancialEntryUseCase } from './get-by-id-financial-entry.usecas
 import { DeleteFinancialEntryUseCase } from './delete-financial-entry.usecase';
 import { BulkDeleteFinancialEntryUseCase } from './bulk-delete-financial-entry.usecase';
 import { SummaryFinancialEntryUseCase } from './summary-financial-entry.usecase';
+import { SummaryByMonthFinancialEntryUseCase } from './summary-by-month-financial-entry.usecase';
+import { SummaryByCategoryFinancialEntryUseCase } from './summary-by-category-financial-entry.usecase';
+import { AgingFinancialEntryUseCase } from './aging-financial-entry.usecase';
 
 export {
   GetByIdFinancialEntryUseCase,
@@ -15,5 +18,8 @@ export {
   UpdateFinancialEntryUseCase,
   DeleteFinancialEntryUseCase,
   BulkDeleteFinancialEntryUseCase,
-  SummaryFinancialEntryUseCase
+  SummaryFinancialEntryUseCase,
+  SummaryByMonthFinancialEntryUseCase,
+  SummaryByCategoryFinancialEntryUseCase,
+  AgingFinancialEntryUseCase
 };

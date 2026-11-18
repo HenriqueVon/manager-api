@@ -122,9 +122,9 @@ describe('OpenAPI document', () => {
         // The session routes have no stored record
         if (isAuthOperation(operation)) return;
 
-        // /financial/entries/installments and /financial/entries/bulk-delete work on entries, so their record is
+        // /financial/entries/installments, /bulk-delete, /summary and its breakdowns work on entries, so their record is
         // the one of /financial/entries/{id}
-        const itemPath = path.endsWith('{id}') ? path : `${path.replace(/\/(installments|bulk-delete|summary)$/, '')}/{id}`;
+        const itemPath = path.endsWith('{id}') ? path : `${path.replace(/\/(installments|bulk-delete|summary(\/(by-month|by-category|aging))?)$/, '')}/{id}`;
         const model = document.paths[itemPath].get.responses['200'].content['application/json'].schema.$ref.split('/').pop();
 
         // A POST to bulk-delete deletes records: it does not write foreign keys

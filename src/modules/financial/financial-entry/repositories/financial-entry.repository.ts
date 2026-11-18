@@ -2,7 +2,16 @@ import { injectable } from 'tsyringe';
 import { prisma } from '@services/database/prisma/prisma.client';
 import { FinancialEntry, FinancialEntryType, Prisma } from '@prisma/client';
 import { IFinancialEntryRepository } from './ifinancial-entry.repository';
-import { CreateFinancialEntryDto, UpdateFinancialEntryDto, FinancialEntrySummaryGroupDto } from '../dtos';
+import {
+  CreateFinancialEntryDto,
+  UpdateFinancialEntryDto,
+  FinancialEntrySummaryFiltersDto,
+  FinancialEntrySummaryGroupDto,
+  FinancialEntrySummaryMonthDto,
+  FinancialEntrySummaryCategoryDto,
+  FinancialEntryAgingBand,
+  FinancialEntryAgingGroupDto
+} from '../dtos';
 import { prismaCall } from '@shared/database/prisma/prisma-call';
 import { DateRangeDto } from '@shared/dtos/date-range.dto';
 import { ListParamsDto } from '@shared/dtos/list-params.dto';
@@ -82,30 +91,15 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
     await prismaCall(() => prisma.financialEntry.delete({ where: { id } }));
   }
 
-  async summarize(
-    { ledgerId, type, ids }: { ledgerId?: string; type?: FinancialEntryType; ids?: string[] },
-    dueDateRange: DateRangeDto = {}
-  ): Promise<FinancialEntrySummaryGroupDto[]> {
-    const where: Prisma.FinancialEntryWhereInput = {
-      ledgerId,
-      type,
-      id      : ids && { in: ids },
-      dueDate : { gte: dueDateRange.from, lte: dueDateRange.to },
-    };
-
+  async summarize(filters: FinancialEntrySummaryFiltersDto, dueDateRange: DateRangeDto = {}): Promise<FinancialEntrySummaryGroupDto[]> {
     const byFund = await prisma.financialEntry.groupBy({
       by     : ['financialFundId', 'type'],
-      where,
+      where  : this.summaryWhere(filters, { gte: dueDateRange.from, lte: dueDateRange.to }),
       _count : { _all: true },
       _sum   : { amount: true, amountPaid: true },
     });
 
-    // The currency of an entry is the one of its fund
-    const funds = await prisma.financialFund.findMany({
-      where  : { id: { in: byFund.map((group) => group.financialFundId) } },
-      select : { id: true, financialCurrencyId: true },
-    });
-    const currencyOfFund = new Map(funds.map((fund) => [fund.id, fund.financialCurrencyId]));
+    const currencyOfFund = await this.currencyOfFunds(byFund.map((group) => group.financialFundId));
 
     const groups = new Map<string, FinancialEntrySummaryGroupDto>();
 
@@ -129,6 +123,96 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
     return [...groups.values()].sort((a, b) => a.type.localeCompare(b.type) || a.financialCurrencyId.localeCompare(b.financialCurrencyId));
   }
 
+  async summarizeByMonth(filters: FinancialEntrySummaryFiltersDto, dueDateRange: DateRangeDto = {}): Promise<FinancialEntrySummaryMonthDto[]> {
+    // The dates are stored at midnight UTC: grouping by date and folding the days into months keeps the query free of raw SQL
+    const byDay = await prisma.financialEntry.groupBy({
+      by     : ['dueDate', 'financialFundId', 'type'],
+      where  : this.summaryWhere(filters, { gte: dueDateRange.from, lte: dueDateRange.to }),
+      _count : { _all: true },
+      _sum   : { amount: true, amountPaid: true },
+    });
+
+    const currencyOfFund = await this.currencyOfFunds(byDay.map((row) => row.financialFundId));
+    const groups = new Map<string, FinancialEntrySummaryMonthDto>();
+
+    for (const row of byDay) {
+      const month = row.dueDate.toISOString().slice(0, 7);
+      const financialCurrencyId = currencyOfFund.get(row.financialFundId) as string;
+      const key = `${month}:${row.type}:${financialCurrencyId}`;
+      const group = groups.get(key) ?? { month, ...this.emptyGroup(row.type, financialCurrencyId) };
+
+      this.addTotals(group, row);
+      groups.set(key, group);
+    }
+
+    return [...groups.values()].sort((a, b) => a.month.localeCompare(b.month) || a.type.localeCompare(b.type) || a.financialCurrencyId.localeCompare(b.financialCurrencyId));
+  }
+
+  async summarizeByCategory(filters: FinancialEntrySummaryFiltersDto, dueDateRange: DateRangeDto = {}): Promise<FinancialEntrySummaryCategoryDto[]> {
+    const byCategory = await prisma.financialEntry.groupBy({
+      by     : ['financialCategoryId', 'financialFundId', 'type'],
+      where  : this.summaryWhere(filters, { gte: dueDateRange.from, lte: dueDateRange.to }),
+      _count : { _all: true },
+      _sum   : { amount: true, amountPaid: true },
+    });
+
+    const currencyOfFund = await this.currencyOfFunds(byCategory.map((row) => row.financialFundId));
+    const groups = new Map<string, FinancialEntrySummaryCategoryDto>();
+
+    for (const row of byCategory) {
+      const financialCurrencyId = currencyOfFund.get(row.financialFundId) as string;
+      const key = `${row.financialCategoryId}:${row.type}:${financialCurrencyId}`;
+      const group = groups.get(key) ?? { financialCategoryId: row.financialCategoryId, ...this.emptyGroup(row.type, financialCurrencyId) };
+
+      this.addTotals(group, row);
+      groups.set(key, group);
+    }
+
+    return [...groups.values()].sort((a, b) => a.type.localeCompare(b.type) || a.financialCurrencyId.localeCompare(b.financialCurrencyId) || a.financialCategoryId.localeCompare(b.financialCategoryId));
+  }
+
+  async summarizeAging(filters: { ledgerId?: string; type?: FinancialEntryType }, today: Date): Promise<FinancialEntryAgingGroupDto[]> {
+    const dayInMs = 24 * 60 * 60 * 1000;
+    const inDays = (days: number) => new Date(today.getTime() + days * dayInMs);
+
+    // From the most urgent to the least; the order of the keys is the order of the result
+    const dueDateOfBand: Record<FinancialEntryAgingBand, Prisma.DateTimeFilter> = {
+      OVERDUE    : { lt: today },
+      DAYS_0_7   : { gte: today, lte: inDays(7) },
+      DAYS_8_30  : { gte: inDays(8), lte: inDays(30) },
+      DAYS_31_90 : { gte: inDays(31), lte: inDays(90) },
+      OVER_90    : { gte: inDays(91) },
+    };
+    const bands = Object.keys(dueDateOfBand) as FinancialEntryAgingBand[];
+
+    const byBand = await Promise.all(bands.map(async (band) => ({
+      band,
+      rows: await prisma.financialEntry.groupBy({
+        by     : ['financialFundId', 'type'],
+        where  : this.summaryWhere({ ...filters, paid: false }, dueDateOfBand[band]),
+        _count : { _all: true },
+        _sum   : { amount: true, amountPaid: true },
+      }),
+    })));
+
+    const currencyOfFund = await this.currencyOfFunds(byBand.flatMap(({ rows }) => rows.map((row) => row.financialFundId)));
+    const groups = new Map<string, FinancialEntryAgingGroupDto>();
+
+    for (const { band, rows } of byBand) {
+      for (const row of rows) {
+        const financialCurrencyId = currencyOfFund.get(row.financialFundId) as string;
+        const key = `${band}:${row.type}:${financialCurrencyId}`;
+        const group = groups.get(key) ?? { band, type: row.type, financialCurrencyId, count: 0, amountOpen: new Prisma.Decimal(0) };
+
+        group.count += row._count._all;
+        group.amountOpen = group.amountOpen.add(row._sum.amount ?? 0).sub(row._sum.amountPaid ?? 0);
+        groups.set(key, group);
+      }
+    }
+
+    return [...groups.values()].sort((a, b) => bands.indexOf(a.band) - bands.indexOf(b.band) || a.type.localeCompare(b.type) || a.financialCurrencyId.localeCompare(b.financialCurrencyId));
+  }
+
   async findExistingIds(ids: string[]): Promise<string[]> {
     const entries = await prisma.financialEntry.findMany({
       where  : { id: { in: ids } },
@@ -145,5 +229,35 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
   async exists(id: string): Promise<boolean> {
     const count = await prisma.financialEntry.count({ where: { id } });
     return count > 0;
+  }
+
+  // `paid` follows the payment date: with one the entry is paid, without it the entry is open
+  private summaryWhere({ ledgerId, type, ids, paid }: FinancialEntrySummaryFiltersDto, dueDate: Prisma.DateTimeFilter): Prisma.FinancialEntryWhereInput {
+    const paymentDate = paid === undefined ? undefined : (paid ? { not: null } : null);
+
+    return { ledgerId, type, id: ids && { in: ids }, paymentDate, dueDate };
+  }
+
+  // The currency of an entry is the one of its fund
+  private async currencyOfFunds(fundIds: string[]): Promise<Map<string, string>> {
+    const funds = await prisma.financialFund.findMany({
+      where  : { id: { in: [...new Set(fundIds)] } },
+      select : { id: true, financialCurrencyId: true },
+    });
+
+    return new Map(funds.map((fund) => [fund.id, fund.financialCurrencyId]));
+  }
+
+  private emptyGroup(type: FinancialEntryType, financialCurrencyId: string): FinancialEntrySummaryGroupDto {
+    return { type, financialCurrencyId, count: 0, amount: new Prisma.Decimal(0), amountPaid: new Prisma.Decimal(0) };
+  }
+
+  private addTotals(
+    group: FinancialEntrySummaryGroupDto,
+    row: { _count: { _all: number }; _sum: { amount: Prisma.Decimal | null; amountPaid: Prisma.Decimal | null } }
+  ): void {
+    group.count += row._count._all;
+    group.amount = group.amount.add(row._sum.amount ?? 0);
+    group.amountPaid = group.amountPaid.add(row._sum.amountPaid ?? 0);
   }
 }
