@@ -1,9 +1,15 @@
 import { z } from 'zod';
+import { FinancialEntryType } from '@prisma/client';
 
 // Dates are stored at midnight UTC, as in the create schema
-const isoDate = (field: string) => z.iso
+export const isoDate = (field: string) => z.iso
   .date({ error: `${field} must be a valid ISO date` })
   .transform((value) => new Date(`${value}T00:00:00.000Z`));
+
+// The search of the entries: every word of the term must be in the description of the entry or in its additionalDescription
+export const entrySearch = (verb: string) => z.string().trim().max(100, 'Search must have at most 100 characters').optional().openapi({
+  description: `${verb} the records where every word of the term is in the description or in the additionalDescription, ignoring case, in any order. Empty does not filter. Example: LIGHT BILL.`,
+});
 
 export const listFinancialEntryQuerySchema = z.object({
   limit          : z.coerce.number().int().min(1).max(100).optional().openapi({ description: 'Number of records per page, from 1 to 100. Default: 20.' }),
@@ -11,8 +17,10 @@ export const listFinancialEntryQuerySchema = z.object({
   orderBy        : z.enum(['id', 'dueDate', 'paymentDate', 'amount', 'amountPaid']).optional().openapi({ description: 'Field to sort by. Default: dueDate.' }),
   orderDirection : z.enum(['asc', 'desc']).optional().openapi({ description: 'Sort direction. Default: asc.' }),
   ledgerId       : z.string().optional().openapi({ description: 'Returns the records whose ledgerId equals the value. Example: cm1234567890abcdefghijkl.' }),
+  type           : z.enum(FinancialEntryType).optional().openapi({ description: 'Returns the records of this type: PAYABLE or RECEIVABLE.' }),
   dueDateFrom    : isoDate('dueDateFrom').optional().openapi({ type: 'string', format: 'date', description: 'Returns the records due on or after this date, inclusive. Example: 2026-01-01.' }),
   dueDateTo      : isoDate('dueDateTo').optional().openapi({ type: 'string', format: 'date', description: 'Returns the records due on or before this date, inclusive. Example: 2026-01-31.' }),
+  search         : entrySearch('Returns'),
 }).strict().refine(
   (query) => !query.dueDateFrom || !query.dueDateTo || query.dueDateFrom <= query.dueDateTo,
   { message: 'dueDateFrom must be before or equal to dueDateTo', path: ['dueDateTo'] }

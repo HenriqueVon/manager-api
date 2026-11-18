@@ -5,11 +5,21 @@ import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
+  createFinancialEntryMonthlySchema,
+  bulkPayFinancialEntrySchema,
   updateFinancialEntrySchema,
   listFinancialEntryQuerySchema,
   financialEntrySchema,
   financialEntryInstallmentsResponseSchema,
+  financialEntryMonthlyResponseSchema,
   listFinancialEntryResponseSchema,
+  summaryFinancialEntryQuerySchema,
+  summaryFinancialEntryResponseSchema,
+  summaryBreakdownFinancialEntryQuerySchema,
+  agingFinancialEntryQuerySchema,
+  summaryByMonthFinancialEntryResponseSchema,
+  summaryByCategoryFinancialEntryResponseSchema,
+  agingFinancialEntryResponseSchema,
 } from './schemas';
 
 const createFinancialEntryInput = openApiRegistry.register(
@@ -22,9 +32,19 @@ const createFinancialEntryInstallmentsInput = openApiRegistry.register(
   createFinancialEntryInstallmentsSchema
 );
 
+const createFinancialEntryMonthlyInput = openApiRegistry.register(
+  'CreateFinancialEntryMonthlyInput',
+  createFinancialEntryMonthlySchema
+);
+
 const bulkDeleteFinancialEntryInput = openApiRegistry.register(
   'BulkDeleteFinancialEntryInput',
   bulkDeleteSchema
+);
+
+const bulkPayFinancialEntryInput = openApiRegistry.register(
+  'BulkPayFinancialEntryInput',
+  bulkPayFinancialEntrySchema
 );
 
 // minProperties documents the "at least one field" refine rule
@@ -86,6 +106,31 @@ const financialEntryInstallmentsExample = [
   paymentDate           : null,
   amount                : '1000',
   additionalDescription : `Flight ticket ${number}/3`,
+}));
+
+const financialEntryMonthlyInputExample = {
+  type                   : 'PAYABLE',
+  dueDate                : '2026-11-05',
+  amount                 : 120,
+  repeatCount            : 3,
+  additionalDescription  : 'Internet',
+  ledgerId               : 'cm1234567890abcdefghijkl',
+  financialDescriptionId : 'cm1234567890abcdefghijkl',
+  financialFundId        : 'cm1234567890abcdefghijkl',
+  financialCategoryId    : 'cm1234567890abcdefghijkl',
+};
+
+const financialEntryMonthlyExample = [
+  '2026-11-05T00:00:00.000Z',
+  '2026-12-05T00:00:00.000Z',
+  '2027-01-05T00:00:00.000Z',
+].map((dueDate) => ({
+  ...financialEntryExample,
+  dueDate,
+  paymentDate           : null,
+  amount                : '120',
+  additionalDescription : 'Internet',
+  isMonthly             : true,
 }));
 
 openApiRegistry.registerPath({
@@ -181,6 +226,40 @@ openApiRegistry.registerPath({
 
 openApiRegistry.registerPath({
   method      : 'post',
+  path        : '/financial/entries/monthly',
+  tags        : ['Financial Entries'],
+  summary     : 'Create repeating every month',
+  description : 'Repeats the same entry every month, saved together: all of them or none. repeatCount is the total of entries, the first one included, from 2 to 60. Each one keeps the full amount and the same additionalDescription, is created unpaid and has isMonthly true.',
+  operationId : 'createFinancialEntryMonthly',
+  request     : {
+    body: {
+      required : true,
+      content  : {
+        'application/json': {
+          schema  : createFinancialEntryMonthlyInput,
+          example : financialEntryMonthlyInputExample,
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description : 'FinancialEntry monthly entries created successfully',
+      content     : {
+        'application/json': {
+          schema  : financialEntryMonthlyResponseSchema,
+          example : financialEntryMonthlyExample,
+        },
+      },
+    },
+    400 : responseRef('ValidationError'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'post',
   path        : '/financial/entries/bulk-delete',
   tags        : ['Financial Entries'],
   summary     : 'Delete several',
@@ -201,6 +280,133 @@ openApiRegistry.registerPath({
     204 : { description: 'FinancialEntry records deleted successfully' },
     400 : responseRef('ValidationError'),
     404 : responseRef('NotFound'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'post',
+  path        : '/financial/entries/bulk-pay',
+  tags        : ['Financial Entries'],
+  summary     : 'Mark several as paid',
+  description : 'Marks up to 100 entries as paid (or received) in one call, in a single transaction: all or none. Each entry gets its due date as the payment date and its amount as the amount paid. When some id does not exist, nothing is changed and the 404 lists the missing ids in ids. When some entry already has a payment date, nothing is changed and the 409 lists those ids in ids.',
+  operationId : 'bulkPayFinancialEntry',
+  request     : {
+    body: {
+      required : true,
+      content  : {
+        'application/json': {
+          schema  : bulkPayFinancialEntryInput,
+          example : { ids: ['cm1234567890abcdefghijkl', 'cm1234567890abcdefghijkm'] },
+        },
+      },
+    },
+  },
+  responses: {
+    204 : { description: 'FinancialEntry records marked as paid successfully' },
+    400 : responseRef('ValidationError'),
+    404 : responseRef('NotFound'),
+    409 : responseRef('Conflict'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'get',
+  path        : '/financial/entries/summary',
+  tags        : ['Financial Entries'],
+  summary     : 'Summary',
+  description : 'Sums the amount and the amount paid of the entries that match the filters, with one group per type and currency (the currency of the fund of the entry). With ids, sums only those entries. With paid, sums only the entries with (true) or without (false) a payment date. With search, sums only the entries whose description or additionalDescription has every word of the term. A filter that matches nothing returns no groups.',
+  operationId : 'summaryFinancialEntry',
+  request     : {
+    query: summaryFinancialEntryQuerySchema,
+  },
+  responses: {
+    200: {
+      description : 'FinancialEntry summary returned successfully',
+      content     : {
+        'application/json': {
+          schema  : summaryFinancialEntryResponseSchema,
+          example : { items: [{ type: 'PAYABLE', financialCurrencyId: 'cm1234567890abcdefghijkl', count: 3, amount: '3000', amountPaid: '1000' }] },
+        },
+      },
+    },
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'get',
+  path        : '/financial/entries/summary/by-month',
+  tags        : ['Financial Entries'],
+  summary     : 'Summary by month',
+  description : 'The same sums as the summary, with one group per month of the due date (YYYY-MM), type and currency. Months without entries are not returned. Takes the same filters as the summary, except ids.',
+  operationId : 'summaryByMonthFinancialEntry',
+  request     : {
+    query: summaryBreakdownFinancialEntryQuerySchema,
+  },
+  responses: {
+    200: {
+      description : 'FinancialEntry summary by month returned successfully',
+      content     : {
+        'application/json': {
+          schema  : summaryByMonthFinancialEntryResponseSchema,
+          example : { items: [{ month: '2026-11', type: 'PAYABLE', financialCurrencyId: 'cm1234567890abcdefghijkl', count: 3, amount: '3000', amountPaid: '1000' }] },
+        },
+      },
+    },
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'get',
+  path        : '/financial/entries/summary/by-category',
+  tags        : ['Financial Entries'],
+  summary     : 'Summary by category',
+  description : 'The same sums as the summary, with one group per category, type and currency. The category is the one of the entry, not a parent of it. Takes the same filters as the summary, except ids.',
+  operationId : 'summaryByCategoryFinancialEntry',
+  request     : {
+    query: summaryBreakdownFinancialEntryQuerySchema,
+  },
+  responses: {
+    200: {
+      description : 'FinancialEntry summary by category returned successfully',
+      content     : {
+        'application/json': {
+          schema  : summaryByCategoryFinancialEntryResponseSchema,
+          example : { items: [{ financialCategoryId: 'cm1234567890abcdefghijkl', type: 'PAYABLE', financialCurrencyId: 'cm1234567890abcdefghijkl', count: 3, amount: '3000', amountPaid: '1000' }] },
+        },
+      },
+    },
+    400: responseRef('ValidationError'),
+    ...globalErrorResponses,
+  },
+});
+
+openApiRegistry.registerPath({
+  method      : 'get',
+  path        : '/financial/entries/summary/aging',
+  tags        : ['Financial Entries'],
+  summary     : 'Aging',
+  description : 'What is still to pay or receive (amount minus amount paid) in the entries without a payment date, grouped by how far the due date is from today (the current UTC date), type and currency. Bands without entries are not returned.',
+  operationId : 'agingFinancialEntry',
+  request     : {
+    query: agingFinancialEntryQuerySchema,
+  },
+  responses: {
+    200: {
+      description : 'FinancialEntry aging returned successfully',
+      content     : {
+        'application/json': {
+          schema  : agingFinancialEntryResponseSchema,
+          example : { items: [{ band: 'OVERDUE', type: 'PAYABLE', financialCurrencyId: 'cm1234567890abcdefghijkl', count: 2, amountOpen: '500' }] },
+        },
+      },
+    },
+    400: responseRef('ValidationError'),
     ...globalErrorResponses,
   },
 });

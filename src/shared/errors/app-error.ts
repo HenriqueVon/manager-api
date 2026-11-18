@@ -54,6 +54,13 @@ export class ResourcesInUseError extends ConflictError {
   }
 }
 
+// Several records were asked to be marked as paid and some already are: the 409 lists their ids, and nothing is changed.
+export class ResourcesAlreadyPaidError extends ConflictError {
+  constructor(public readonly ids: string[]) {
+    super('Some resources are already paid');
+  }
+}
+
 // An error answered by the authentication API, relayed with its own status and code.
 // retryAfter (seconds) comes from the Retry-After header of a 429.
 export class UpstreamAuthError extends AppError {

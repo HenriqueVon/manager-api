@@ -15,9 +15,9 @@ export class ListFinancialEntryUseCase {
 
   async execute(
     params: ListParamsDto,
-    { dueDateFrom, dueDateTo, ...filters }: ListFinancialEntryFiltersDto = {}
+    { dueDateFrom, dueDateTo, search, ...filters }: ListFinancialEntryFiltersDto = {}
   ): Promise<PaginatedResponseDto<FinancialEntry>> {
-    return this.financialEntryRepository.findMany(filters, params, { from: dueDateFrom, to: dueDateTo });
+    return this.financialEntryRepository.findMany(filters, params, { from: dueDateFrom, to: dueDateTo }, search);
   }
 
 }

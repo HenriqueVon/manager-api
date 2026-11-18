@@ -12,11 +12,11 @@ vi.mock('@shared/http/controller.adapter', () => ({
     return (req: Request, res: Response) => {
       controllerSpy(method, req);
 
-      if (method === 'create' || method === 'createInstallments') {
+      if (method === 'create' || method === 'createInstallments' || method === 'createMonthly') {
         return res.status(201).json({ ok: true });
       }
 
-      if (method === 'delete' || method === 'bulkDelete') {
+      if (method === 'delete' || method === 'bulkDelete' || method === 'bulkPay') {
         return res.status(204).send();
       }
 
@@ -55,6 +55,27 @@ describe('FinancialEntry routes', () => {
   });
 
   describe('GET /financial/entries', () => {
+    it('should accept the type filter and reject an unknown type', async () => {
+      const ok = await request(app).get('/financial/entries').query({ type: 'PAYABLE' });
+      expect(ok.status).toBe(200);
+      expect(controllerSpy.mock.calls[0][1].query.type).toBe('PAYABLE');
+
+      const bad = await request(app).get('/financial/entries').query({ type: 'OTHER' });
+      expect(bad.status).toBe(400);
+    });
+
+    it('should accept a search, trim it, and reject one longer than 100 characters', async () => {
+      const ok = await request(app).get('/financial/entries').query({ search: '  light bill ' });
+      expect(ok.status).toBe(200);
+      expect(controllerSpy.mock.calls[0][1].query.search).toBe('light bill');
+
+      const longest = await request(app).get('/financial/entries').query({ search: 'a'.repeat(100) });
+      expect(longest.status).toBe(200);
+
+      const bad = await request(app).get('/financial/entries').query({ search: 'a'.repeat(101) });
+      expect(bad.status).toBe(400);
+    });
+
     it('should call list controller when query is valid', async () => {
       const response = await request(app)
         .get('/financial/entries')
@@ -377,6 +398,89 @@ describe('FinancialEntry routes', () => {
     });
   });
 
+  describe('POST /financial/entries/monthly', () => {
+    const monthlyBody = {
+      type                   : 'PAYABLE',
+      dueDate                : '2026-11-05',
+      amount                 : 120,
+      repeatCount            : 12,
+      additionalDescription  : 'INTERNET',
+      ledgerId               : validCuid,
+      financialDescriptionId : validCuid,
+      financialFundId        : validCuid,
+      financialCategoryId    : validCuid,
+    };
+
+    it('should transform the date and call the createMonthly controller', async () => {
+      const response = await request(app)
+        .post('/financial/entries/monthly')
+        .send(monthlyBody);
+
+      expect(response.status).toBe(201);
+      expect(controllerSpy).toHaveBeenCalledWith('createMonthly', expect.anything());
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+      expect(requestReceived.body.dueDate).toEqual(new Date('2026-11-05T00:00:00.000Z'));
+      expect(requestReceived.body.repeatCount).toBe(12);
+    });
+
+    it('should accept a body without additionalDescription', async () => {
+      const body: Partial<typeof monthlyBody> = { ...monthlyBody };
+      delete body.additionalDescription;
+
+      const response = await request(app)
+        .post('/financial/entries/monthly')
+        .send(body);
+
+      expect(response.status).toBe(201);
+    });
+
+    it('should accept the limits of repeatCount', async () => {
+      for (const repeatCount of [2, 60]) {
+        const response = await request(app)
+          .post('/financial/entries/monthly')
+          .send({ ...monthlyBody, repeatCount });
+
+        expect(response.status).toBe(201);
+      }
+    });
+
+    it('should return 400 when repeatCount is out of range or not an integer', async () => {
+      for (const repeatCount of [1, 0, 61, 2.5, '3']) {
+        const response = await request(app)
+          .post('/financial/entries/monthly')
+          .send({ ...monthlyBody, repeatCount });
+
+        expect(response.status).toBe(400);
+      }
+
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when repeatCount is missing', async () => {
+      const body: Partial<typeof monthlyBody> = { ...monthlyBody };
+      delete body.repeatCount;
+
+      const response = await request(app)
+        .post('/financial/entries/monthly')
+        .send(body);
+
+      expect(response.status).toBe(400);
+    });
+
+    it('should return 400 for the fields that do not apply to monthly entries', async () => {
+      for (const extra of [{ paymentDate: '2026-11-05' }, { amountPaid: 10 }, { isMonthly: true }, { installments: 3 }]) {
+        const response = await request(app)
+          .post('/financial/entries/monthly')
+          .send({ ...monthlyBody, ...extra });
+
+        expect(response.status).toBe(400);
+      }
+
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('POST /financial/entries/bulk-delete', () => {
     const cuid = (index: number) => `ckl8p2x1a${String(index).padStart(4, '0')}x8kq3b0c9a1z`;
 
@@ -448,6 +552,62 @@ describe('FinancialEntry routes', () => {
         .send({ ids: [cuid(1)], extra: 'not-allowed' });
 
       expect(response.status).toBe(400);
+      expect(controllerSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('POST /financial/entries/bulk-pay', () => {
+    const cuid = (index: number) => `ckl8p2x1a${String(index).padStart(4, '0')}x8kq3b0c9a1z`;
+
+    it('should call the bulkPay controller when the ids are valid', async () => {
+      const response = await request(app)
+        .post('/financial/entries/bulk-pay')
+        .send({ ids: [cuid(1), cuid(2)] });
+
+      expect(response.status).toBe(204);
+      expect(controllerSpy).toHaveBeenCalledWith('bulkPay', expect.anything());
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+      expect(requestReceived.body).toEqual({ ids: [cuid(1), cuid(2)] });
+    });
+
+    it('should pay a repeated id once', async () => {
+      await request(app)
+        .post('/financial/entries/bulk-pay')
+        .send({ ids: [cuid(1), cuid(2), cuid(1)] });
+
+      const requestReceived = controllerSpy.mock.calls[0][1] as Request;
+      expect(requestReceived.body.ids).toEqual([cuid(1), cuid(2)]);
+    });
+
+    it('should accept from 1 to 100 ids', async () => {
+      for (const count of [1, 100]) {
+        const response = await request(app)
+          .post('/financial/entries/bulk-pay')
+          .send({ ids: Array.from({ length: count }, (_, index) => cuid(index)) });
+
+        expect(response.status).toBe(204);
+      }
+    });
+
+    it('should return 400 for no ids, more than 100, an invalid id or extra fields', async () => {
+      const bodies = [
+        { ids: [] },
+        { ids: Array.from({ length: 101 }, (_, index) => cuid(index)) },
+        { ids: [cuid(1), '123'] },
+        { ids: 'not-an-array' },
+        {},
+        { ids: [cuid(1)], paymentDate: '2026-11-05' },
+      ];
+
+      for (const body of bodies) {
+        const response = await request(app)
+          .post('/financial/entries/bulk-pay')
+          .send(body);
+
+        expect(response.status).toBe(400);
+      }
+
       expect(controllerSpy).not.toHaveBeenCalled();
     });
   });

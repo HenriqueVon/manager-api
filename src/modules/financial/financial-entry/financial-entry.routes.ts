@@ -7,8 +7,13 @@ import { bulkDeleteSchema } from '@shared/schemas/bulk-delete.schema';
 import {
   createFinancialEntrySchema,
   createFinancialEntryInstallmentsSchema,
+  createFinancialEntryMonthlySchema,
+  bulkPayFinancialEntrySchema,
   updateFinancialEntrySchema,
-  listFinancialEntryQuerySchema
+  listFinancialEntryQuerySchema,
+  summaryFinancialEntryQuerySchema,
+  summaryBreakdownFinancialEntryQuerySchema,
+  agingFinancialEntryQuerySchema
 } from './schemas';
 
 const router = Router();
@@ -32,9 +37,45 @@ router.post(
 );
 
 router.post(
+  '/monthly',
+  validateRequest({ body: createFinancialEntryMonthlySchema }),
+  controllerAdapter(FinancialEntryController, 'createMonthly')
+);
+
+router.post(
   '/bulk-delete',
   validateRequest({ body: bulkDeleteSchema }),
   controllerAdapter(FinancialEntryController, 'bulkDelete')
+);
+
+router.post(
+  '/bulk-pay',
+  validateRequest({ body: bulkPayFinancialEntrySchema }),
+  controllerAdapter(FinancialEntryController, 'bulkPay')
+);
+
+router.get(
+  '/summary',
+  validateRequest({ query: summaryFinancialEntryQuerySchema }),
+  controllerAdapter(FinancialEntryController, 'summary')
+);
+
+router.get(
+  '/summary/by-month',
+  validateRequest({ query: summaryBreakdownFinancialEntryQuerySchema }),
+  controllerAdapter(FinancialEntryController, 'summaryByMonth')
+);
+
+router.get(
+  '/summary/by-category',
+  validateRequest({ query: summaryBreakdownFinancialEntryQuerySchema }),
+  controllerAdapter(FinancialEntryController, 'summaryByCategory')
+);
+
+router.get(
+  '/summary/aging',
+  validateRequest({ query: agingFinancialEntryQuerySchema }),
+  controllerAdapter(FinancialEntryController, 'aging')
 );
 
 router.get(

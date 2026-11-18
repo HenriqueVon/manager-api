@@ -40,10 +40,10 @@ describe('OpenAPI document', () => {
     it('should document the success status used by the controllers for each method', () => {
       forEachOperation(document, (name, operation, path, method) => {
         const successStatuses = Object.keys(operation.responses).filter((status) => status.startsWith('2'));
-        // A POST to bulk-delete deletes records, so it answers 204 like a DELETE
+        // A POST to bulk-delete deletes records and one to bulk-pay changes them without returning anything: both answer 204
         const expected = isAuthOperation(operation)
           ? AUTH_SUCCESS_STATUS_BY_PATH[path]
-          : path.endsWith('/bulk-delete') ? SUCCESS_STATUS_BY_METHOD.delete : SUCCESS_STATUS_BY_METHOD[method];
+          : path.endsWith('/bulk-delete') || path.endsWith('/bulk-pay') ? SUCCESS_STATUS_BY_METHOD.delete : SUCCESS_STATUS_BY_METHOD[method];
 
         expect(successStatuses, name).toEqual([expected]);
       });
@@ -93,8 +93,8 @@ describe('OpenAPI document', () => {
       forEachOperation(document, (name, operation, path) => {
         expect(operation.responses['400'], name).toBeDefined();
 
-        // bulk-delete answers 404 with the ids that do not exist
-        if (path.includes('{id}') || path.endsWith('/bulk-delete')) {
+        // bulk-delete and bulk-pay answer 404 with the ids that do not exist
+        if (path.includes('{id}') || path.endsWith('/bulk-delete') || path.endsWith('/bulk-pay')) {
           expect(operation.responses['404'], name).toEqual({ $ref: '#/components/responses/NotFound' });
         } else {
           expect(operation.responses['404'], name).toBeUndefined();
@@ -122,14 +122,15 @@ describe('OpenAPI document', () => {
         // The session routes have no stored record
         if (isAuthOperation(operation)) return;
 
-        // /financial/entries/installments and /financial/entries/bulk-delete work on entries, so their record is
+        // /financial/entries/installments, /monthly, /bulk-delete, /bulk-pay, /summary and its breakdowns work on entries, so their record is
         // the one of /financial/entries/{id}
-        const itemPath = path.endsWith('{id}') ? path : `${path.replace(/\/(installments|bulk-delete)$/, '')}/{id}`;
+        const itemPath = path.endsWith('{id}') ? path : `${path.replace(/\/(installments|monthly|bulk-delete|bulk-pay|summary(\/(by-month|by-category|aging))?)$/, '')}/{id}`;
         const model = document.paths[itemPath].get.responses['200'].content['application/json'].schema.$ref.split('/').pop();
 
-        // A POST to bulk-delete deletes records: it does not write foreign keys
+        // A POST to bulk-delete deletes records and one to bulk-pay only sets the payment fields: they do not write foreign keys
         const isBulkDelete = path.endsWith('/bulk-delete');
-        const writesForeignKeys = !isBulkDelete && (method === 'post' || method === 'patch') && holders.has(model);
+        const isBulkPay = path.endsWith('/bulk-pay');
+        const writesForeignKeys = !isBulkDelete && !isBulkPay && (method === 'post' || method === 'patch') && holders.has(model);
         const deletesReferencedRecord = (method === 'delete' || isBulkDelete) && referenced.has(model);
 
         if (writesForeignKeys || deletesReferencedRecord) {
