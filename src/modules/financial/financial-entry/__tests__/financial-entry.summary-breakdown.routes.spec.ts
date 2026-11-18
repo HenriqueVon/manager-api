@@ -59,6 +59,7 @@ describe('GET /financial/entries/summary/* (breakdowns)', () => {
       expect((await request(app).get(path).query({ ids: validCuid })).status).toBe(400);
       expect((await request(app).get(path).query({ limit: 10 })).status).toBe(400);
       expect((await request(app).get(path).query({ paid: 'maybe' })).status).toBe(400);
+      expect((await request(app).get(path).query({ search: 'light' })).status).toBe(400);
       expect(controllerSpy).not.toHaveBeenCalled();
     });
 

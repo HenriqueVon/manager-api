@@ -48,7 +48,7 @@ describe('ListFinancialEntryUseCase', () => {
     const result = await sut.execute(params);
 
     expect(repo.findMany).toHaveBeenCalledTimes(1);
-    expect(repo.findMany).toHaveBeenCalledWith({}, params, { from: undefined, to: undefined });
+    expect(repo.findMany).toHaveBeenCalledWith({}, params, { from: undefined, to: undefined }, undefined);
     expect(result).toBe(paginatedResult);
   });
 
@@ -65,8 +65,18 @@ describe('ListFinancialEntryUseCase', () => {
     expect(repo.findMany).toHaveBeenCalledWith(
       { ledgerId: 'ledger-1' },
       params,
-      { from: new Date('2026-01-01T00:00:00.000Z'), to: new Date('2026-01-31T00:00:00.000Z') }
+      { from: new Date('2026-01-01T00:00:00.000Z'), to: new Date('2026-01-31T00:00:00.000Z') },
+      undefined
     );
+  });
+
+  it('should pass the search apart from the other filters', async () => {
+    const params = { limit: 10 };
+    (repo.findMany as any).mockResolvedValue({ items: [], total: 0 });
+
+    await sut.execute(params, { ledgerId: 'ledger-1', search: 'light bill' });
+
+    expect(repo.findMany).toHaveBeenCalledWith({ ledgerId: 'ledger-1' }, params, { from: undefined, to: undefined }, 'light bill');
   });
 
   it('should pass a range with only one end', async () => {
@@ -75,6 +85,6 @@ describe('ListFinancialEntryUseCase', () => {
 
     await sut.execute(params, { dueDateFrom: new Date('2026-01-01T00:00:00.000Z') });
 
-    expect(repo.findMany).toHaveBeenCalledWith({}, params, { from: new Date('2026-01-01T00:00:00.000Z'), to: undefined });
+    expect(repo.findMany).toHaveBeenCalledWith({}, params, { from: new Date('2026-01-01T00:00:00.000Z'), to: undefined }, undefined);
   });
 });

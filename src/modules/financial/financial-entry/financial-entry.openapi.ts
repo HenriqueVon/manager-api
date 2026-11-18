@@ -316,7 +316,7 @@ openApiRegistry.registerPath({
   path        : '/financial/entries/summary',
   tags        : ['Financial Entries'],
   summary     : 'Summary',
-  description : 'Sums the amount and the amount paid of the entries that match the filters, with one group per type and currency (the currency of the fund of the entry). With ids, sums only those entries. With paid, sums only the entries with (true) or without (false) a payment date. A filter that matches nothing returns no groups.',
+  description : 'Sums the amount and the amount paid of the entries that match the filters, with one group per type and currency (the currency of the fund of the entry). With ids, sums only those entries. With paid, sums only the entries with (true) or without (false) a payment date. With search, sums only the entries whose description or additionalDescription has every word of the term. A filter that matches nothing returns no groups.',
   operationId : 'summaryFinancialEntry',
   request     : {
     query: summaryFinancialEntryQuerySchema,

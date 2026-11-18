@@ -64,6 +64,18 @@ describe('FinancialEntry routes', () => {
       expect(bad.status).toBe(400);
     });
 
+    it('should accept a search, trim it, and reject one longer than 100 characters', async () => {
+      const ok = await request(app).get('/financial/entries').query({ search: '  light bill ' });
+      expect(ok.status).toBe(200);
+      expect(controllerSpy.mock.calls[0][1].query.search).toBe('light bill');
+
+      const longest = await request(app).get('/financial/entries').query({ search: 'a'.repeat(100) });
+      expect(longest.status).toBe(200);
+
+      const bad = await request(app).get('/financial/entries').query({ search: 'a'.repeat(101) });
+      expect(bad.status).toBe(400);
+    });
+
     it('should call list controller when query is valid', async () => {
       const response = await request(app)
         .get('/financial/entries')
