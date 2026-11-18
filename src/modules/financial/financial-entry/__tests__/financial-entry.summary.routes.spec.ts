@@ -70,6 +70,15 @@ describe('GET /financial/entries/summary', () => {
     expect(bad.status).toBe(400);
   });
 
+  it('should accept a search, trim it, and reject one longer than 100 characters', async () => {
+    const ok = await request(app).get('/financial/entries/summary').query({ search: '  light bill ' });
+    expect(ok.status).toBe(200);
+    expect(controllerSpy.mock.calls[0][1].query.search).toBe('light bill');
+
+    const bad = await request(app).get('/financial/entries/summary').query({ search: 'a'.repeat(101) });
+    expect(bad.status).toBe(400);
+  });
+
   it('should count a repeated id once', async () => {
     await request(app).get('/financial/entries/summary').query({ ids: `${validCuid},${validCuid}` });
 

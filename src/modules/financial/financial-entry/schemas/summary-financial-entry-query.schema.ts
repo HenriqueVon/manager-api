@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { FinancialEntryType } from '@prisma/client';
 import { idSchema } from '@shared/schemas/id.schema';
 import { MAX_BULK_DELETE } from '@shared/schemas/bulk-delete.schema';
-import { isoDate } from './list-financial-entry-query.schema';
+import { entrySearch, isoDate } from './list-financial-entry-query.schema';
 
 const ledgerId = z.string().optional().openapi({ description: 'Sums the records whose ledgerId equals the value. Example: cm1234567890abcdefghijkl.' });
 const type = z.enum(FinancialEntryType).optional().openapi({ description: 'Sums the records of this type: PAYABLE or RECEIVABLE.' });
@@ -23,10 +23,11 @@ const periodFilters = {
 const hasValidPeriod = (query: { dueDateFrom?: Date; dueDateTo?: Date }) => !query.dueDateFrom || !query.dueDateTo || query.dueDateFrom <= query.dueDateTo;
 const invalidPeriod = { message: 'dueDateFrom must be before or equal to dueDateTo', path: ['dueDateTo'] };
 
-// `ids` narrows the entries to the ones given
+// `ids` narrows the entries to the ones given, and `search` to the ones of the text, like in the list
 export const summaryFinancialEntryQuerySchema = z.object({
   ...periodFilters,
-  ids: z
+  search : entrySearch('Sums'),
+  ids    : z
     .string()
     .transform((value) => [...new Set(value.split(','))])
     .pipe(

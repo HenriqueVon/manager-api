@@ -18,7 +18,8 @@ export interface IFinancialEntryRepository {
   // Creates all the entries or none of them
   createMany(data: CreateFinancialEntryDto[]): Promise<FinancialEntry[]>;
   findById(id: string): Promise<FinancialEntry | null>;
-  findMany(filters?: Partial<FinancialEntry>, params?: ListParamsDto, dueDateRange?: DateRangeDto): Promise<PaginatedResponseDto<FinancialEntry>>;
+  // `search`: every word must be in the description or in the additionalDescription of the entry
+  findMany(filters?: Partial<FinancialEntry>, params?: ListParamsDto, dueDateRange?: DateRangeDto, search?: string): Promise<PaginatedResponseDto<FinancialEntry>>;
   // The totals of the entries that match, grouped by type and currency; `ids` narrows them to the ones given
   summarize(filters: FinancialEntrySummaryFiltersDto, dueDateRange?: DateRangeDto): Promise<FinancialEntrySummaryGroupDto[]>;
   // The same totals, also grouped by the month of the due date

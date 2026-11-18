@@ -39,7 +39,8 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
   async findMany(
     filters: Partial<FinancialEntry> = {},
     params: ListParamsDto = {},
-    dueDateRange: DateRangeDto = {}
+    dueDateRange: DateRangeDto = {},
+    search?: string
   ): Promise<PaginatedResponseDto<FinancialEntry>> {
     const limit = Math.min(params.limit ?? 20, 100);
     const offset = params.offset ?? 0;
@@ -49,8 +50,9 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
     // An exact dueDate wins over the range; a range with no ends matches every date
     const where: Prisma.FinancialEntryWhereInput = {
       type,
-      dueDate: dueDate ?? { gte: dueDateRange.from, lte: dueDateRange.to },
+      dueDate : dueDate ?? { gte: dueDateRange.from, lte: dueDateRange.to },
       paymentDate, amount, amountPaid, additionalDescription, isMonthly, ledgerId, financialDescriptionId, financialFundId, financialCategoryId,
+      AND     : this.searchWhere(search),
     };
 
     // Without an order the database may repeat or skip rows between pages, and many entries share a date.
@@ -266,10 +268,25 @@ export class FinancialEntryRepository implements IFinancialEntryRepository {
   }
 
   // `paid` follows the payment date: with one the entry is paid, without it the entry is open
-  private summaryWhere({ ledgerId, type, ids, paid }: FinancialEntrySummaryFiltersDto, dueDate: Prisma.DateTimeFilter): Prisma.FinancialEntryWhereInput {
+  private summaryWhere({ ledgerId, type, ids, paid, search }: FinancialEntrySummaryFiltersDto, dueDate: Prisma.DateTimeFilter): Prisma.FinancialEntryWhereInput {
     const paymentDate = paid === undefined ? undefined : (paid ? { not: null } : null);
 
-    return { ledgerId, type, id: ids && { in: ids }, paymentDate, dueDate };
+    return { ledgerId, type, id: ids && { in: ids }, paymentDate, dueDate, AND: this.searchWhere(search) };
+  }
+
+  // Every word of the term must be in the description of the entry (stored in upper case, so the word is too) or in its
+  // additionalDescription (any case, so the word ignores it). No term does not filter.
+  private searchWhere(search?: string): Prisma.FinancialEntryWhereInput[] | undefined {
+    const words = search?.split(/\s+/).filter(Boolean) ?? [];
+
+    if (words.length === 0) return undefined;
+
+    return words.map((word): Prisma.FinancialEntryWhereInput => ({
+      OR: [
+        { financialDescription: { description: { contains: word.toUpperCase() } } },
+        { additionalDescription: { contains: word, mode: 'insensitive' } },
+      ],
+    }));
   }
 
   // The currency of an entry is the one of its fund

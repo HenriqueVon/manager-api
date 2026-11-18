@@ -17,6 +17,8 @@ export interface FinancialEntrySummaryFiltersDto {
   type?     : FinancialEntryType;
   ids?      : string[];
   paid?     : boolean;
+  // Every word must be in the description or in the additionalDescription of the entry
+  search?   : string;
 }
 
 // The totals of the entries of one type in one currency
