@@ -9,6 +9,7 @@ import {
 import {
   CreateFinancialEntryUseCase,
   CreateFinancialEntryInstallmentsUseCase,
+  CreateFinancialEntryMonthlyUseCase,
   UpdateFinancialEntryUseCase,
   ListFinancialEntryUseCase,
   GetByIdFinancialEntryUseCase,
@@ -27,6 +28,8 @@ export class FinancialEntryController {
     private readonly createFinancialEntryUseCase: CreateFinancialEntryUseCase,
     @inject(CreateFinancialEntryInstallmentsUseCase)
     private readonly createFinancialEntryInstallmentsUseCase: CreateFinancialEntryInstallmentsUseCase,
+    @inject(CreateFinancialEntryMonthlyUseCase)
+    private readonly createFinancialEntryMonthlyUseCase: CreateFinancialEntryMonthlyUseCase,
     @inject(ListFinancialEntryUseCase)
     private readonly listFinancialEntryUseCase: ListFinancialEntryUseCase,
     @inject(UpdateFinancialEntryUseCase)
@@ -54,6 +57,11 @@ export class FinancialEntryController {
 
   async createInstallments(req: Request, res: Response) {
     const financialEntries = await this.createFinancialEntryInstallmentsUseCase.execute(req.body);
+    return res.status(201).json(financialEntries);
+  }
+
+  async createMonthly(req: Request, res: Response) {
+    const financialEntries = await this.createFinancialEntryMonthlyUseCase.execute(req.body);
     return res.status(201).json(financialEntries);
   }
 
