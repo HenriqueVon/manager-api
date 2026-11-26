@@ -21,10 +21,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -44,8 +44,52 @@ jobs:
       - name: Run tests
         run: npm run test
 
+  # Applies every committed migration to an empty PostgreSQL and checks that the result is exactly
+  # schema.prisma. A schema change without its migration (or a migration that does not match the schema)
+  # fails here, before any migration reaches dev or production. The credentials are for this throwaway
+  # database only.
+  migrations-check:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: manager_api_check
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U user -d manager_api_check"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://user:password@localhost:5432/manager_api_check
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Apply the migrations to an empty database
+        run: npm run prisma:migrate:prod
+
+      - name: Check that the migrations match schema.prisma
+        run: npx prisma migrate diff --from-config-datasource --to-schema src/services/database/prisma/schema.prisma --exit-code
+
   migrate-dev:
-    needs: validate
+    needs: [validate, migrations-check]
     if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
     environment: dev
@@ -55,10 +99,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -79,10 +123,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -94,7 +138,7 @@ jobs:
         run: npx prisma generate        
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
@@ -110,7 +154,7 @@ jobs:
           AUTH_CLIENT_SECRET: ${{ secrets.AUTH_CLIENT_SECRET }}
 
   migrate-prod:
-    needs: validate
+    needs: [validate, migrations-check]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: prd
@@ -120,10 +164,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -144,10 +188,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
@@ -159,7 +203,7 @@ jobs:
         run: npx prisma generate        
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}

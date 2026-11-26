@@ -23,6 +23,12 @@ function numberVar(name: string, fallback?: number): number {
   return n;
 }
 
+function poolMaxVar(): number {
+  const n = numberVar('DB_POOL_MAX', 2);
+  if (!Number.isInteger(n) || n < 1 || n > 20) throw new Error('Env var DB_POOL_MAX must be an integer from 1 to 20');
+  return n;
+}
+
 export const env = {
   nodeEnv: (optional('NODE_ENV', 'development') as NodeEnv),
   
@@ -31,7 +37,10 @@ export const env = {
   },
 
   db: {
-    url: required('DATABASE_URL'),
+    url     : required('DATABASE_URL'),
+    // Connections that the pool of one Lambda container may open. A container handles one request at a
+    // time, so a small number is enough; many containers running together multiply it.
+    poolMax : poolMaxVar(),
   },
 
   apiKey: required('API_KEY'),

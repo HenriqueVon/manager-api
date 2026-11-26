@@ -28,7 +28,7 @@ A `Ledger` is the parent record for bank accounts, funds, categories, entries an
 
 | Concern | Technology |
 |---|---|
-| Language | TypeScript (CommonJS, `strict`, decorators + `emitDecoratorMetadata`) — [`tsconfig.json`](../tsconfig.json) |
+| Language | TypeScript (`strict`, decorators + `emitDecoratorMetadata`; `module: preserve` without `baseUrl`, so it also works on TypeScript 6; esbuild bundles to CommonJS) — [`tsconfig.json`](../tsconfig.json) |
 | HTTP framework | Express 4 |
 | Dependency injection | tsyringe + `reflect-metadata` |
 | Validation | Zod 4 |

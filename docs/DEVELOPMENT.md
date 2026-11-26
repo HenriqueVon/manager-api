@@ -16,7 +16,7 @@ Conventions here are labeled by how strictly the current code follows them:
 
 | Requirement | Evidence |
 |---|---|
-| **Node.js 24** | CI uses `node-version: 24` ([deploy.yml](../.github/workflows/deploy.yml)); Lambda runtime is `nodejs24.x` ([serverless.yml](../serverless.yml)). `package.json` has no `engines` field and there is no `.nvmrc`. |
+| **Node.js 24** | CI uses `node-version: 24` ([deploy.yml](../.github/workflows/deploy.yml)); Lambda runtime is `nodejs24.x` ([serverless.yml](../serverless.yml)). `package.json` requires `node >=24` (`engines`) and [`.nvmrc`](../.nvmrc) pins 24 for `nvm use`. |
 | **npm** | `package-lock.json` is committed and CI installs with `npm ci`. |
 | **PostgreSQL** | Prisma datasource provider is `postgresql`. The repository does **not** provide a local database (no Docker/Compose files). You must supply a PostgreSQL instance yourself. |
 | **A reachable authentication API** | Every API request except the `/auth` session routes (including `/health`) is validated with `POST ${AUTH_API_URL}/auth/validate`, as a Client of that API. There is no local bypass in the code. |
@@ -38,6 +38,7 @@ Create a `.env` file based on [`.env.example`](../.env.example). `.env` is git-i
 | `NODE_ENV` | [`config/env.ts`](../src/config/env.ts), [`prisma.client.ts`](../src/services/database/prisma/prisma.client.ts) | optional (default `development`) | `development` enables Prisma query logging. `production` disables `/docs`. |
 | `PORT` | `config/env.ts` | optional (default `3000`) | Used by `npm run dev`. `.env.example` sets `4000`. |
 | `DATABASE_URL` | `config/env.ts`, `prisma.client.ts`, [`prisma.config.ts`](../prisma.config.ts) | **required** | App startup fails without it. |
+| `DB_POOL_MAX` | `config/env.ts`, `prisma.client.ts` | optional (default `2`) | Connections the database pool of **one** process may open, from 1 to 20. In Lambda every container has its own pool, so the database sees `containers running at once × DB_POOL_MAX`; do that arithmetic against the database's `max_connections` before raising it. The `pg` default would be 10. |
 | `SHADOW_DATABASE_URL` | `prisma.config.ts` | used by Prisma CLI | Needed by `prisma migrate dev`. Not read by the app. |
 | `API_KEY` | `config/env.ts` | **required** | Clients must send it as `x-api-key`. |
 | `AUTH_API_URL` | `config/env.ts` | **required** | Base URL of the authentication API, including `/v1/api`. |
@@ -103,7 +104,7 @@ All endpoints are under `/v1/api/...`. Requests need:
 
 ### Serverless / AWS configuration relevant to development
 
-- [`serverless.yml`](../serverless.yml) uses `useDotenv: true` and maps `NODE_ENV`, `DATABASE_URL`, `API_KEY`, `AUTH_API_URL`, `AUTH_API_KEY`, `AUTH_CLIENT_SECRET` and `AUTH_API_TIMEOUT_MS` from your environment into `provider.environment`. `DOCS_ENABLED` is **not** listed there (see [Section 17](#17-adding-a-new-environment-variable)).
+- [`serverless.yml`](../serverless.yml) uses `useDotenv: true` and maps `NODE_ENV`, `DATABASE_URL`, `DB_POOL_MAX`, `API_KEY`, `AUTH_API_URL`, `AUTH_API_KEY`, `AUTH_CLIENT_SECRET` and `AUTH_API_TIMEOUT_MS` from your environment into `provider.environment`. `DOCS_ENABLED` is **not** listed there (see [Section 17](#17-adding-a-new-environment-variable)).
 - Code is bundled with `serverless-esbuild` (no separate build step).
 
 ---
@@ -789,7 +790,7 @@ A workflow using only the tools in this repository:
 9. **Schema changes:** if `schema.prisma` changed, include the generated migration (see [Section 16](#16-adding-a-new-database-field)).
 10. **Learnings:** ask what you discovered that the next person would trip on (a gotcha, a missing rule, code not to copy, a choice made on the way). Record verified, non-obvious facts in the right document, in the same pull request: pitfalls in [Section 19](#19-common-pitfalls), rules in [CONVENTIONS.md](CONVENTIONS.md), business rules in [DOMAIN.md](DOMAIN.md). See [CLAUDE.md §9](../CLAUDE.md#capturing-learnings).
 
-Pull requests to `develop` or `main` run the `validate` job (lint, type check, tests) without deploying. Pushing to `develop` triggers a deploy to the `dev` stage; pushing to `main` deploys to `prod`. Both run only after `validate` succeeds.
+Pull requests to `develop` or `main` run the `validate` job (lint, type check, tests) and the `migrations-check` job without deploying. Pushing to `develop` triggers a deploy to the `dev` stage; pushing to `main` deploys to `prod`. Both run only after `validate` and `migrations-check` succeed (the migration job needs both; the deploy needs the migration).
 
 ---
 
@@ -824,6 +825,8 @@ Pull requests to `develop` or `main` run the `validate` job (lint, type check, t
 7. **Use cases:** change only if the field takes part in normalization, uniqueness or another rule.
 8. **OpenAPI:** update the entity example and input example in `<m>.openapi.ts`. `openapi-contract.spec.ts` fails if the entity example does not match what the API returns.
 9. **Tests:** add route validation cases for the new field and adjust use case specs if logic changed.
+
+Before any migration reaches `dev` or `prd`, the `migrations-check` job of [`deploy.yml`](../.github/workflows/deploy.yml) applies every committed migration to an empty throwaway PostgreSQL (a service container, no secrets) and runs `prisma migrate diff --from-config-datasource --to-schema ... --exit-code` against `schema.prisma`. A `schema.prisma` change without its migration, or a migration that does not produce the schema, fails the job. Both migrate jobs have `needs: [validate, migrations-check]`.
 
 Migrations reach deployed environments through the `migrate-dev` and `migrate-prod` jobs in [`deploy.yml`](../.github/workflows/deploy.yml), which run before `serverless deploy`. For a short time the previous code runs against the new schema, so a migration must stay compatible with the previous code: add before removing, and do not rename or drop a column in the same change that stops using it. If a migration fails, the deploy does not run, and the failed migration is recorded in `_prisma_migrations`, which blocks every later run (`P3009`). Prisma does not undo the statements that ran before the error, so the database may be left partially migrated, and a plain re-run then fails on objects that already exist (`42P07`). To recover:
 
@@ -898,6 +901,7 @@ When adding a required variable, check all four places.
 15. **Ignoring the value returned by `openApiRegistry.register()`.** Passing the original schema to `registerPath` inlines it and leaves an unused component; `openapi-document.spec.ts` fails on unused components.
 16. **OpenAPI examples that break a business rule.** `openapi-contract.spec.ts` sends each documented example through the real use cases, with a repository mock whose `findById` answers only for the example's own id. An example that a use case rejects (e.g. a category whose `parentCategoryId` equals its own id) makes the contract spec fail with that error.
 17. **Mixed line endings.** Some tracked files use CRLF (`app.ts`, `serverless.yml`, `deploy.yml`, `.env.example`) and others LF (the docs, most modules). `sed -i` in Git Bash rewrites a CRLF file as LF, which shows up as a whole-file diff. Edit with the editor tools, or check with `git ls-files --eol <file>` and restore the original endings.
+18. **A lockfile that works on your machine but fails `npm ci` on the CI.** The CI runs on Linux. A lockfile generated on Windows or macOS can leave out optional dependencies of other platforms, and `npm ci` then stops with `Missing: <package> from lock file`. After you change a dependency, regenerate the lockfile on Linux with the Node of the CI and check `npm ci` there before the push. Run the check on a copy of the project, so the container never touches your `node_modules`: `docker run --rm -v "${PWD}:/src:ro" node:24-slim sh -c "mkdir /w && cp /src/package.json /src/package-lock.json /w && cd /w && npm ci --ignore-scripts"` (PowerShell; use `$(pwd)` in a POSIX shell). To regenerate the lockfile itself, run `npm install --package-lock-only` in the same kind of container. Dependabot pull requests do not have this problem: they run on Linux ([dependabot.yml](../.github/dependabot.yml) groups minor and patch updates weekly and GitHub Actions monthly, and ignores the major versions of `express`, `@types/express` and `serverless`, which are explicit decisions).
 
 ---
 

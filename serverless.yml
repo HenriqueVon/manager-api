@@ -24,6 +24,7 @@ provider:
   environment:
     NODE_ENV: ${env:NODE_ENV}
     DATABASE_URL: ${env:DATABASE_URL}
+    DB_POOL_MAX: ${env:DB_POOL_MAX, "2"}
     API_KEY: ${env:API_KEY}
     AUTH_API_URL: ${env:AUTH_API_URL}
     AUTH_API_KEY: ${env:AUTH_API_KEY}
