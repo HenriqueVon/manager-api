@@ -1,0 +1,2 @@
+# One line ending for every text file, so `sed -i` or an editor on Windows never shows a whole-file diff
+* text=auto eol=lf
