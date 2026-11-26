@@ -1,0 +1,38 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # One pull request for the minor and patch updates of the week instead of one per package
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Major upgrades of the foundations (Express 5, Serverless Framework 4) are decisions, not routine
+      # updates: they change the code and the licensing/login rules. Remove an entry when the project decides to upgrade.
+      - dependency-name: express
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/express"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: serverless
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      # One pull request per month with every action update, major versions included. The pull request checks
+      # only run `validate`: the deploy and Pages jobs are not exercised, so read the release notes first.
+      github-actions:
+        patterns:
+          - "*"
