@@ -5,7 +5,7 @@ import { env } from '@config/env';
 // `max` limits the connections of this process. In Lambda every container has its own pool, so the total
 // is `max` times the number of containers running at once.
 const adapter = new PrismaPg({
-  connectionString : process.env.DATABASE_URL,
+  connectionString : env.db.url,
   max              : env.db.poolMax,
 });
 
@@ -18,11 +18,11 @@ export const prisma =
   new PrismaClient({
     adapter,
     log:
-      process.env.NODE_ENV === 'development'
+      env.nodeEnv === 'development'
         ? ['query', 'info', 'warn', 'error']
         : ['error'],
   });
 
-if (process.env.NODE_ENV !== 'production') {
+if (env.nodeEnv !== 'production') {
   global.prisma = prisma;
 }

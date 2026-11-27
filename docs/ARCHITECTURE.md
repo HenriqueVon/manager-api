@@ -184,7 +184,7 @@ src/modules/financial/financial-fund/
 
 Traced for `POST /v1/api/financial/funds/transactions`. Every module follows the same path.
 
-1. **Entry.** In Lambda, [`handler.ts`](../src/handler.ts) adapts the event into Express. Locally, [`local.ts`](../src/local.ts) listens on `PORT` with an outer Express server; when `env.nodeEnv !== 'production'` and `env.docsEnabled === 'true'` it serves `/docs` first (before the API key check), then delegates everything to `app`. The Lambda never serves `/docs`.
+1. **Entry.** In Lambda, [`handler.ts`](../src/handler.ts) adapts the event into Express. Locally, [`local.ts`](../src/local.ts) listens on `PORT` with an outer Express server; when `env.nodeEnv !== 'production'` and `env.docsEnabled` it serves `/docs` first (before the API key check), then delegates everything to `app`. The Lambda never serves `/docs`.
 
 2. **Global middleware**, in the order registered in [`app.ts`](../src/app.ts):
    1. `express.json()`.
@@ -252,7 +252,7 @@ Schemas           ──► zod; @prisma/client enums (ledger, bank-account, cat
 - **Controller → use case:** controllers inject concrete use case classes; there is no interface.
 - **Repository → Prisma:** repositories import the `prisma` singleton directly; it is not injected.
 - **Authentication:** `authMiddleware` instantiates `AuthService` with `new`. The use cases of the `auth` module receive it by injection (`@inject(AuthService)`, the class is the token).
-- **Configuration:** `env` is imported directly ([`config/env.ts`](../src/config/env.ts)). [`prisma.client.ts`](../src/services/database/prisma/prisma.client.ts) reads `process.env` directly instead of `env`.
+- **Configuration:** `env` is imported directly ([`config/env.ts`](../src/config/env.ts)), which validates every variable with a Zod schema when the module loads.
 - **Types across layers:** Prisma model types appear in use cases and repository interfaces, and DTO types are derived from HTTP validation schemas. Use cases and interfaces are therefore typed by the ORM and by the HTTP layer.
 
 ---
@@ -499,9 +499,9 @@ The user is authenticated by the authentication API (auth-api), which manager-ap
 - Who can log in is decided in auth-api: the Client needs an `ACTIVE` membership for the user. With `allowRegistration` on in auth-api, any Google account could create one and reach every ledger. Keep it off and invite the user.
 
 **Configuration:**
-- [`config/env.ts`](../src/config/env.ts) requires `DATABASE_URL`, `API_KEY`, `AUTH_API_URL` and `AUTH_API_KEY`; a missing value throws at module load.
-- `AUTH_CLIENT_SECRET` is optional (only for a confidential Client) and `AUTH_API_TIMEOUT_MS` defaults to 5000.
-- `PORT` defaults to 3000, `NODE_ENV` to `development` and `DOCS_ENABLED` to `'false'`.
+- [`config/env.ts`](../src/config/env.ts) validates every variable with a Zod schema at module load. `DATABASE_URL`, `API_KEY`, `AUTH_API_URL` (an http or https URL) and `AUTH_API_KEY` are required. A missing or invalid value throws one error that lists every problem, never the values. An empty value counts as not set.
+- `AUTH_CLIENT_SECRET` is optional (only for a confidential Client) and `AUTH_API_TIMEOUT_MS` defaults to 5000 (a positive integer).
+- `PORT` defaults to 3000 (1 to 65535), `NODE_ENV` to `development` (only `development`, `test` or `production`), `DB_POOL_MAX` to 2 (1 to 20) and `DOCS_ENABLED` to `false` (only `true` or `false`, exposed as a boolean).
 - [`serverless.yml`](../serverless.yml) forwards `NODE_ENV`, `DATABASE_URL`, `API_KEY`, `AUTH_API_URL`, `AUTH_API_KEY`, `AUTH_CLIENT_SECRET` and `AUTH_API_TIMEOUT_MS` to the Lambda environment, and the deploy jobs set them from GitHub (`AUTH_API_URL` is a variable, the others are secrets).
 
 ---
@@ -575,7 +575,7 @@ There are 52 spec files: 48 co-located in each module's `__tests__/` folder, one
 
 ### OpenAPI tests (3 files)
 
-Located in [`src/docs/openapi/__tests__/`](../src/docs/openapi/__tests__). Required environment variables are set by the side-effect module `test-env.ts`.
+Located in [`src/docs/openapi/__tests__/`](../src/docs/openapi/__tests__). Required environment variables are set by [`src/test/setup.ts`](../src/test/setup.ts), which Vitest runs before every spec.
 
 | Spec | What it checks |
 |---|---|
@@ -658,7 +658,7 @@ Listed factually. No fixes are proposed in this document.
 **Dependency injection and wiring**
 
 7. The per-request child container has no scoped registrations, so it provides no per-request isolation.
-8. The Prisma client and configuration are outside the DI container, and `authMiddleware` creates `AuthService` with `new`. `prisma.client.ts` reads `process.env.DATABASE_URL` directly rather than `env`.
+8. The Prisma client and configuration are outside the DI container, and `authMiddleware` creates `AuthService` with `new`.
 9. The composition root lives in `src/shared/` and imports every module.
 
 **Runtime behavior**

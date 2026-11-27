@@ -1,4 +1,3 @@
-import './test-env';
 import { describe, it, expect, beforeAll } from 'vitest';
 import express from 'express';
 import request from 'supertest';

@@ -335,7 +335,7 @@ Details and flow: [ARCHITECTURE.md §11](ARCHITECTURE.md#11-openapi-documentatio
 - Use Vitest; spec files are `*.spec.ts` inside `__tests__/` next to the code under test.
 - Test use cases in isolation: instantiate with `new`, pass a hand-written repository mock; no DI container, Prisma or database.
 - In route specs, mock `controllerAdapter` (`vi.mock('@shared/http/controller.adapter', ...)`) and test validation and routing only.
-- Import a test env module first in specs that load `src/config/env.ts`, which requires `DATABASE_URL`, `API_KEY`, `AUTH_API_URL` and `AUTH_API_KEY` at load time. Specs that import `AuthService` (directly, or through a use case or a router) need it too. See `src/docs/openapi/__tests__/test-env.ts`.
+- Do not set environment variables in a spec. `src/test/setup.ts`, which Vitest runs before every spec, sets test values for the variables that `src/config/env.ts` requires (`DATABASE_URL`, `API_KEY`, `AUTH_API_URL`, `AUTH_API_KEY`); `dotenv` does not override them, so a spec never reads the developer's real values for them. Add a test value there for a new required variable.
 - Keep `npm run test:run` green, including the OpenAPI specs.
 
 **SHOULD**
@@ -423,12 +423,13 @@ Workflow: [DEVELOPMENT.md §16](DEVELOPMENT.md#16-adding-a-new-database-field).
 Workflow: [DEVELOPMENT.md §17](DEVELOPMENT.md#17-adding-a-new-environment-variable).
 
 **MUST**
-- Read variables through `env` from `src/config/env.ts`, declared with `required`, `optional` or `numberVar`.
+- Read variables through `env` from `src/config/env.ts`, declared in its Zod schema with the type, the range and, for an optional variable, a default (`.default(...)`). An invalid value must stop the start with a clear message that never contains the value; never cast a string to a type without checking it.
+- Add a test in `src/config/__tests__/env.spec.ts` for a new rule, and a test value in `src/test/setup.ts` for a new required variable.
 - Add every variable to `.env.example`.
 - If the Lambda needs it, add it to `provider.environment` in `serverless.yml` **and** to both deploy jobs in `.github/workflows/deploy.yml`.
 
 **AVOID**
-- `process.env` outside `config/env.ts` (`prisma.client.ts` does it).
+- `process.env` outside `config/env.ts` (and `prisma.config.ts`, which runs in the Prisma CLI, and `src/test/setup.ts`).
 - Declaring a variable `required` without wiring it for deployment (`serverless.yml`, the deploy jobs and the GitHub secrets).
 
 ---
@@ -447,12 +448,11 @@ Confirmed issues present in the committed code. Do not use them as references.
 | 6 | `Promise<X \| null>` on get-by-id | All 9 `GetById…UseCase` | They throw `NotFoundError` and never return `null`. | Declare `Promise<X>`. |
 | 7 | Treating the request child container as request-scoped | `requestContainerMiddleware` comments | Nothing is registered with a scoped lifecycle. | Do not depend on per-request instances ([§11](#11-dependency-injection)). |
 | 8 | `new AuthService()` inside middleware | `authMiddleware` | Bypasses DI. | Constructor injection ([§11](#11-dependency-injection)). |
-| 9 | `process.env` outside `config/env.ts` | `prisma.client.ts` | Skips the required/optional checks. | `env` from `config/env.ts` ([§18](#18-environment-variables)). |
-| 10 | Route specs mounted at non-real paths; redundant `reflect-metadata` imports | Currency, description, payment-method route specs; 27 use case specs | Inconsistent; the import is already in the setup. | [§14](#14-tests). |
-| 11 | `_amountDebit` assigned and unused without the disable comment | `financial-fund-transaction.routes.spec.ts` | Produces a lint warning. | [§14](#14-tests). |
-| 12 | Migration name typo | `add_collum_financial_bank_account_id_…` | Typo. | `add_column_…`. |
-| 13 | Previous OpenAPI model | Replaced in PR #18 | Diverged from runtime. | [§13](#13-openapi). |
-| 14 | `./usecases/index`, `./../repositories/...` | `ledger.controller.ts`, the 9 create use cases | Inconsistent import paths. | [§15](#15-imports). |
+| 9 | Route specs mounted at non-real paths; redundant `reflect-metadata` imports | Currency, description, payment-method route specs; 27 use case specs | Inconsistent; the import is already in the setup. | [§14](#14-tests). |
+| 10 | `_amountDebit` assigned and unused without the disable comment | `financial-fund-transaction.routes.spec.ts` | Produces a lint warning. | [§14](#14-tests). |
+| 11 | Migration name typo | `add_collum_financial_bank_account_id_…` | Typo. | `add_column_…`. |
+| 12 | Previous OpenAPI model | Replaced in PR #18 | Diverged from runtime. | [§13](#13-openapi). |
+| 13 | `./usecases/index`, `./../repositories/...` | `ledger.controller.ts`, the 9 create use cases | Inconsistent import paths. | [§15](#15-imports). |
 | 15 | Composite unique with nullable column | `FinancialCategory` (`parentCategoryId`) | Duplicates allowed at root level. | [§17](#17-database-and-prisma). |
 | 16 | List without a total order | The currency, payment method, bank account and fund repositories: `orderBy` is `undefined` when the request has no `orderBy`, and there is no `id` tie-breaker (the ledger, description, category, entry and fund transaction repositories have both) | `offset` pages can repeat or skip records. | Default order and `id` tie-breaker ([§10](#10-repositories)). |
 | 17 | Coerced `limit` and `offset` without an OpenAPI `type` | The list query schemas of currencies, payment methods, bank accounts and funds | Documented as `number \| null`. | `.openapi({ type: 'integer', ... })` ([§7](#7-schemas-and-validation)). |

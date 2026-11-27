@@ -1,4 +1,3 @@
-import './test-env';
 import { describe, it, expect } from 'vitest';
 import { Prisma } from '@prisma/client';
 import routes, { authRoutes } from '../../../routes';

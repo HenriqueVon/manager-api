@@ -8,7 +8,7 @@ import { env } from './config/env';
 // include them. They are mounted on an outer server, before the app's API key and auth middlewares.
 const server = express();
 
-if (env.nodeEnv !== 'production' && env.docsEnabled === 'true') {
+if (env.nodeEnv !== 'production' && env.docsEnabled) {
   server.use('/docs', openApiRoutes);
 }
 
