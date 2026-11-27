@@ -1,4 +1,3 @@
-import '@docs/openapi/__tests__/test-env';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { env } from '@config/env';
 import { AuthService } from '../auth.service';

@@ -35,19 +35,19 @@ Create a `.env` file based on [`.env.example`](../.env.example). `.env` is git-i
 
 | Variable | Read by | Required? | Notes |
 |---|---|---|---|
-| `NODE_ENV` | [`config/env.ts`](../src/config/env.ts), [`prisma.client.ts`](../src/services/database/prisma/prisma.client.ts) | optional (default `development`) | `development` enables Prisma query logging. `production` disables `/docs`. |
+| `NODE_ENV` | [`config/env.ts`](../src/config/env.ts), [`prisma.client.ts`](../src/services/database/prisma/prisma.client.ts) | optional (default `development`) | Only `development`, `test` or `production`. `development` enables Prisma query logging. `production` disables `/docs`. |
 | `PORT` | `config/env.ts` | optional (default `3000`) | Used by `npm run dev`. `.env.example` sets `4000`. |
 | `DATABASE_URL` | `config/env.ts`, `prisma.client.ts`, [`prisma.config.ts`](../prisma.config.ts) | **required** | App startup fails without it. |
 | `DB_POOL_MAX` | `config/env.ts`, `prisma.client.ts` | optional (default `2`) | Connections the database pool of **one** process may open, from 1 to 20. In Lambda every container has its own pool, so the database sees `containers running at once × DB_POOL_MAX`; do that arithmetic against the database's `max_connections` before raising it. The `pg` default would be 10. |
 | `SHADOW_DATABASE_URL` | `prisma.config.ts` | used by Prisma CLI | Needed by `prisma migrate dev`. Not read by the app. |
 | `API_KEY` | `config/env.ts` | **required** | Clients must send it as `x-api-key`. |
-| `AUTH_API_URL` | `config/env.ts` | **required** | Base URL of the authentication API, including `/v1/api`. |
+| `AUTH_API_URL` | `config/env.ts` | **required** | Base URL of the authentication API, including `/v1/api`. Must be an http or https URL. |
 | `AUTH_API_KEY` | `config/env.ts` | **required** | API key of the Client of this API in the authentication API. Not the same as `API_KEY`. |
 | `AUTH_CLIENT_SECRET` | `config/env.ts` | optional | Client secret, only if the Client is confidential. Sent on the code exchange. |
-| `AUTH_API_TIMEOUT_MS` | `config/env.ts` | optional (5000) | Timeout of every call to the authentication API. |
-| `DOCS_ENABLED` | `config/env.ts` | optional (default `'false'`) | Set to `true` to serve Swagger UI at `/docs` (only when `NODE_ENV !== 'production'`). |
+| `AUTH_API_TIMEOUT_MS` | `config/env.ts` | optional (5000) | Timeout in milliseconds of every call to the authentication API. A positive integer. |
+| `DOCS_ENABLED` | `config/env.ts` | optional (default `false`) | Only `true` or `false`. Set to `true` to serve Swagger UI at `/docs` (only when `NODE_ENV !== 'production'`). |
 
-`config/env.ts` imports `dotenv/config`, so `.env` in the working directory is loaded automatically. `prisma.config.ts` also imports `dotenv/config`.
+`config/env.ts` imports `dotenv/config`, so `.env` in the working directory is loaded automatically. It validates every variable when the module loads: a missing or invalid value stops the start with one `Invalid environment variables:` error that lists every problem (never the values). An empty value, such as `PORT=`, counts as not set and takes the default. `prisma.config.ts` also imports `dotenv/config`.
 
 ### Prisma and the database
 
@@ -599,7 +599,7 @@ shared/schemas/error-response.schema.ts  error bodies produced by the runtime
   → docs/openapi/openapi.routes.ts        GET /docs/openapi.json + Swagger UI at /docs (document built on first request)
 ```
 
-- The router is imported and mounted only by [`src/local.ts`](../src/local.ts), and only when `NODE_ENV !== 'production'` and `DOCS_ENABLED === 'true'`. `app.ts` does not reference it, so the documentation code is not in the Lambda bundle. The document is generated on the first request to `/docs` and then reused.
+- The router is imported and mounted only by [`src/local.ts`](../src/local.ts), and only when `NODE_ENV !== 'production'` and `DOCS_ENABLED=true`. `app.ts` does not reference it, so the documentation code is not in the Lambda bundle. The document is generated on the first request to `/docs` and then reused.
 - To view the docs locally, set `DOCS_ENABLED=true` and open `http://localhost:<PORT>/docs`. `/docs` does not require the API key or a token.
 - Security is a single requirement: **both** `x-api-key` and the bearer token.
 
@@ -680,7 +680,7 @@ Middleware order in [`src/app.ts`](../src/app.ts):
 | 6 | `errorHandler` | Converts errors to responses (see [Section 12](#12-error-handling)). |
 | 7 | `GET /health` | Returns `{ ok: true, service: 'manager-api' }`. Registered after `errorHandler`. |
 
-The local server ([`src/local.ts`](../src/local.ts)) wraps `app` in an outer Express server that mounts `/docs` → `openApiRoutes` **before** `app` (only if `NODE_ENV !== 'production'` and `DOCS_ENABLED === 'true'`). The Lambda handler uses `app` directly and has no `/docs`.
+The local server ([`src/local.ts`](../src/local.ts)) wraps `app` in an outer Express server that mounts `/docs` → `openApiRoutes` **before** `app` (only if `NODE_ENV !== 'production'` and `DOCS_ENABLED=true`). The Lambda handler uses `app` directly and has no `/docs`.
 
 ### Which endpoints are protected
 
@@ -746,7 +746,7 @@ Reference: [financial-fund-transaction.routes.spec.ts](../src/modules/financial/
 
 ### OpenAPI tests
 
-Location: [`src/docs/openapi/__tests__/`](../src/docs/openapi/__tests__). These specs import `./test-env` first, which sets the variables required by `config/env.ts`.
+Location: [`src/docs/openapi/__tests__/`](../src/docs/openapi/__tests__). The variables required by `config/env.ts` are set by [`src/test/setup.ts`](../src/test/setup.ts), which Vitest runs before every spec.
 
 | Spec | Checks |
 |---|---|
@@ -841,17 +841,17 @@ Wrapping the migration SQL in `BEGIN;` / `COMMIT;` (the migration step above) av
 
 ## 17. Adding a New Environment Variable
 
-1. **[`src/config/env.ts`](../src/config/env.ts):** add it to the `env` object using the existing helpers.
-   - `required(name)`: throws `Missing required env var: <name>` **at import time** if unset or empty.
-   - `optional(name, fallback?)`: returns the value or the fallback; may be `undefined`.
-   - `numberVar(name, fallback?)`: parses a number; throws if missing without fallback or not numeric.
+1. **[`src/config/env.ts`](../src/config/env.ts):** declare it in `envSchema` with its type and range, and a `.default(...)` if it is optional; then expose it in the object that `parseEnv` returns (e.g. `apiKey: values.API_KEY`).
+   - A missing or invalid value makes the module throw **at import time**, with one error that lists every problem.
+   - An empty value counts as not set, so an optional variable takes its default.
+   - Add a test for the new rule in [`src/config/__tests__/env.spec.ts`](../src/config/__tests__/env.spec.ts). For a required variable, add a test value in [`src/test/setup.ts`](../src/test/setup.ts), or every spec that loads `env.ts` fails.
 
-   Read it through `env` (e.g. `env.apiKey`). Exception: `prisma.client.ts` reads `process.env.DATABASE_URL` directly.
+   Read it through `env` (e.g. `env.apiKey`), never through `process.env`.
 2. **Local development:** add it to your `.env`, and add it to [`.env.example`](../.env.example) so others know it exists.
 3. **Serverless:** to make it available in Lambda, add it to `provider.environment` in [`serverless.yml`](../serverless.yml), e.g. `MY_VAR: ${env:MY_VAR}`. `.env*` files are excluded from the deployment package, so `dotenv` will not supply values in Lambda.
 4. **CI/CD:** the deploy jobs in [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) set `NODE_ENV`, `DATABASE_URL`, `API_KEY`, `AUTH_API_KEY` and `AUTH_CLIENT_SECRET` (secrets) and `AUTH_API_URL` (variable) for `serverless deploy`. A new variable must be added to both `deploy-dev` and `deploy-prod`, typically from GitHub secrets or vars.
 
-**The risk:** a variable that is `required()` in `env.ts` and listed in `.env.example` but missing from `serverless.yml` `provider.environment` or from the CI deploy `env`. Locally it works because `.env` is loaded; in the Lambda the app throws at startup. `AUTH_API_KEY` must exist as a secret in the GitHub environments `dev` and `prd` before the next deploy.
+**The risk:** a variable that is required in `env.ts` and listed in `.env.example` but missing from `serverless.yml` `provider.environment` or from the CI deploy `env`. Locally it works because `.env` is loaded; in the Lambda the app throws at startup. `AUTH_API_KEY` must exist as a secret in the GitHub environments `dev` and `prd` before the next deploy.
 
 When adding a required variable, check all four places.
 

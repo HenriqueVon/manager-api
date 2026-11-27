@@ -1,4 +1,3 @@
-import '@docs/openapi/__tests__/test-env';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LogoutAllUseCase } from '../../usecases/logout-all.usecase';
 import { AuthService } from '@services/auth/auth.service';

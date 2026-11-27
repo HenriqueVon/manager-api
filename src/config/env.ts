@@ -1,61 +1,72 @@
 import 'dotenv/config';
+import { z } from 'zod';
 
-type NodeEnv = 'development' | 'test' | 'production';
+// Every variable the application reads, validated once at load time. A missing or invalid value stops the
+// start with one message that lists all the problems (never the values, which can be secrets).
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production'], { error: 'must be development, test or production' }).default('development'),
 
-function required(name: string): string {
-  const v = process.env[name];
-  if (!v) throw new Error(`Missing required env var: ${name}`);
-  return v;
-}
+  PORT: z.coerce.number({ error: 'must be a number' }).int().min(1).max(65535).default(3000),
 
-function optional(name: string, fallback?: string): string | undefined {
-  return process.env[name] ?? fallback;
-}
+  DATABASE_URL: z.string({ error: 'is required' }).min(1, 'is required'),
 
-function numberVar(name: string, fallback?: number): number {
-  const v = process.env[name];
-  if (v === undefined || v === '') {
-    if (fallback === undefined) throw new Error(`Missing required env var: ${name}`);
-    return fallback;
-  }
-  const n = Number(v);
-  if (Number.isNaN(n)) throw new Error(`Env var ${name} must be a number`);
-  return n;
-}
+  // Connections that the pool of one Lambda container may open. A container handles one request at a time,
+  // so a small number is enough; many containers running together multiply it.
+  DB_POOL_MAX: z.coerce.number({ error: 'must be a number' }).int().min(1).max(20).default(2),
 
-function poolMaxVar(): number {
-  const n = numberVar('DB_POOL_MAX', 2);
-  if (!Number.isInteger(n) || n < 1 || n > 20) throw new Error('Env var DB_POOL_MAX must be an integer from 1 to 20');
-  return n;
-}
+  API_KEY: z.string({ error: 'is required' }).min(1, 'is required'),
 
-export const env = {
-  nodeEnv: (optional('NODE_ENV', 'development') as NodeEnv),
-  
-  app: {
-    port: numberVar('PORT', 3000),
-  },
-
-  db: {
-    url     : required('DATABASE_URL'),
-    // Connections that the pool of one Lambda container may open. A container handles one request at a
-    // time, so a small number is enough; many containers running together multiply it.
-    poolMax : poolMaxVar(),
-  },
-
-  apiKey: required('API_KEY'),
-
-  docsEnabled: optional('DOCS_ENABLED', 'false'),
+  DOCS_ENABLED: z.enum(['true', 'false'], { error: 'must be true or false' }).default('false').transform((value) => value === 'true'),
 
   // Base URL of the authentication API, including /v1/api
-  authApiBaseUrl: required('AUTH_API_URL'),
+  AUTH_API_URL: z.url({
+    protocol : /^https?$/,
+    error    : (issue) => (issue.input === undefined ? 'is required' : 'must be an http or https URL'),
+  }),
 
   // API key of the Client of this API in the authentication API
-  authApiKey: required('AUTH_API_KEY'),
+  AUTH_API_KEY: z.string({ error: 'is required' }).min(1, 'is required'),
 
   // Only for a confidential Client: sent on the exchange of the social login code
-  authClientSecret: optional('AUTH_CLIENT_SECRET'),
+  AUTH_CLIENT_SECRET: z.string().optional(),
 
-  authApiTimeoutMs: numberVar('AUTH_API_TIMEOUT_MS', 5000),
+  AUTH_API_TIMEOUT_MS: z.coerce.number({ error: 'must be a number' }).int().min(1).default(5000),
+});
 
-} as const;
+// An empty value counts as not set, so `PORT=` in a .env file falls back to the default
+export function parseEnv(source: NodeJS.ProcessEnv) {
+  const present = Object.fromEntries(
+    Object.entries(source).filter(([, value]) => value !== undefined && value !== '')
+  );
+
+  const result = envSchema.safeParse(present);
+
+  if (!result.success) {
+    const problems = result.error.issues.map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`);
+    throw new Error(`Invalid environment variables:\n${problems.join('\n')}`);
+  }
+
+  const values = result.data;
+
+  return {
+    nodeEnv: values.NODE_ENV,
+
+    app: {
+      port: values.PORT,
+    },
+
+    db: {
+      url     : values.DATABASE_URL,
+      poolMax : values.DB_POOL_MAX,
+    },
+
+    apiKey           : values.API_KEY,
+    docsEnabled      : values.DOCS_ENABLED,
+    authApiBaseUrl   : values.AUTH_API_URL,
+    authApiKey       : values.AUTH_API_KEY,
+    authClientSecret : values.AUTH_CLIENT_SECRET,
+    authApiTimeoutMs : values.AUTH_API_TIMEOUT_MS,
+  } as const;
+}
+
+export const env = parseEnv(process.env);
